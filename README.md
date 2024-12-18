@@ -45,9 +45,3 @@ NFT Forge is a web-based platform that leverages the Solana blockchain to enable
 - **V1.0:** Basic website with AI generation and automatic minting on Solana.
 - **V2.0:** Enhancements in design customization, marketplace integration, and user feedback for AI learning.
 - **Future:** Governance features, utility expansion in virtual spaces, and community-driven development.
-
-## License
-
-This project is licensed under the **GPL-3.0 License** - see the [LICENSE.md](LICENSE.md) file for details.
-
----
