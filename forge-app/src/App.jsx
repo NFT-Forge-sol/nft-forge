@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
-import './Components/WalletDisplay'
+import './Components/Tools/WalletDisplay'
 import './App.css'
-import WalletDisplay from './Components/WalletDisplay'
-import WalletContextProvider from './Components/WalletContextProvider'
+import WalletDisplay from './Components/Tools/WalletDisplay'
+import WalletContextProvider from './Components/Tools/WalletContextProvider'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import ImageGenerator from './Components/Tools/ImageGenerator'
+import { Button, Select, SelectItem } from '@nextui-org/react'
 
 function App() {
   const [range, setRange] = useState(100)
@@ -43,25 +45,25 @@ function App() {
             <input type="number" min={100} max={1000} value={range} onChange={handleRangeChange} onBlur={handleBlur} />
           </div>
           <div>
-            <label>Style</label>
-            <select>
-              <option>Drawing</option>
-              <option>8-Bit</option>
-              <option>Real</option>
-            </select>
+            <Select className="max-w-xs" placeholder="Select a style" label="Style">
+              <SelectItem key={0}>Drawing</SelectItem>
+              <SelectItem key={1}>8-Bit</SelectItem>
+              <SelectItem key={2}>Realism</SelectItem>
+            </Select>
           </div>
           <div>
-            <label>Background</label>
-            <select>
-              <option>Full Color</option>
-              <option>Fade</option>
-              <option>City</option>
-            </select>
+            <Select className="max-w-xs" placeholder="Select a background" label="Background">
+              <SelectItem key={0}>Full Color</SelectItem>
+              <SelectItem key={1}>Fade</SelectItem>
+              <SelectItem key={2}>City</SelectItem>
+            </Select>
           </div>
           <WalletDisplay />
           <WalletMultiButton />
+          <ImageGenerator />
         </div>
         <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
+        <Button>Go to image generation</Button>
       </WalletContextProvider>
     </>
   )

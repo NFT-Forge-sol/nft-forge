@@ -15,15 +15,12 @@ const WalletDisplay = () => {
       }
 
       try {
-        const accountInfo = await connection.getAccountInfo(publicKey)
-
-        if (accountInfo) {
-          setBalance(accountInfo.lamports / LAMPORTS_PER_SOL)
-        } else {
-          console.error('Account info not found')
-        }
+        connection.getBalance(publicKey).then((balance) => {
+          console.log(balance)
+          setBalance(balance / LAMPORTS_PER_SOL)
+        })
       } catch (error) {
-        console.error('Failed to retrieve account info:', error)
+        console.log('Error while getting the wallet balance: ', error)
       }
     }
 
