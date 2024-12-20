@@ -10,25 +10,23 @@ const WalletDisplay = () => {
   useEffect(() => {
     const updateBalance = async () => {
       if (!connection || !publicKey) {
-        console.error('Wallet not connected or connection unavailable')
+        console.warn('Wallet not connected or connection unavailable')
         return
       }
 
       try {
-        connection.getBalance(publicKey).then((balance) => {
-          console.log(balance)
-          setBalance(balance / LAMPORTS_PER_SOL)
-        })
+        const balance = await connection.getBalance(publicKey)
+        setBalance(balance / LAMPORTS_PER_SOL)
       } catch (error) {
-        console.log('Error while getting the wallet balance: ', error)
+        console.error('Error while getting the wallet balance:', error)
       }
     }
+
+    updateBalance()
 
     const interval = setInterval(() => {
       updateBalance()
     }, 10000)
-
-    updateBalance()
 
     return () => {
       clearInterval(interval)
@@ -37,7 +35,7 @@ const WalletDisplay = () => {
 
   return (
     <div>
-      <p>{publicKey ? `Balance : ${balance} SOL` : 'Please connect your wallet'}</p>
+      <p>{publicKey ? `Balance: ${balance.toFixed(4)} SOL` : 'Please connect your wallet'}</p>
     </div>
   )
 }

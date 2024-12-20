@@ -6,8 +6,8 @@ import './App.css'
 import WalletDisplay from './Components/Tools/WalletDisplay'
 import WalletContextProvider from './Components/Tools/WalletContextProvider'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import ImageGenerator from './Components/Tools/ImageGenerator'
-import { Button, Select, SelectItem } from '@nextui-org/react'
+import { Select, SelectItem } from '@nextui-org/react'
+import ProjectForm from './Components/Items/ProjectForm'
 
 function App() {
   const [range, setRange] = useState(100)
@@ -60,10 +60,10 @@ function App() {
           </div>
           <WalletDisplay />
           <WalletMultiButton />
-          <ImageGenerator />
+          <h1>Create NFT from Image </h1>
+          <ProjectForm />
         </div>
         <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
-        <Button>Go to image generation</Button>
       </WalletContextProvider>
     </>
   )
