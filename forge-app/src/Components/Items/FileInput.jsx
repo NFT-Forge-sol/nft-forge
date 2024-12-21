@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import PropTypes from 'prop-types'
+import { toast } from 'sonner'
 
 const FileInput = ({ onFileChange }) => {
   const [fileName, setFileName] = useState('')
   const [error, setError] = useState('')
-  const [previewUrl, setPreviewUrl] = useState(null) // État pour stocker l'URL de prévisualisation
+  const [previewUrl, setPreviewUrl] = useState(null)
 
   const allowedExtensions = ['svg', 'png', 'jpg', 'jpeg']
 
@@ -15,18 +16,18 @@ const FileInput = ({ onFileChange }) => {
       if (allowedExtensions.includes(fileExtension)) {
         setFileName(file.name)
         setError('')
-        setPreviewUrl(URL.createObjectURL(file)) // Génère une URL temporaire pour l'aperçu
+        setPreviewUrl(URL.createObjectURL(file))
         onFileChange(file)
       } else {
         setFileName('')
         setError('Invalid file type. Please select an SVG, PNG, JPG, or JPEG file.')
-        setPreviewUrl(null) // Réinitialise l'aperçu
+        setPreviewUrl(null)
         onFileChange(null)
       }
     } else {
       setFileName('')
       setError('')
-      setPreviewUrl(null) // Réinitialise l'aperçu
+      setPreviewUrl(null)
       onFileChange(null)
     }
   }

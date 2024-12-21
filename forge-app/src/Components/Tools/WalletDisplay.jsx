@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { Toaster, toast } from 'sonner'
 
 const WalletDisplay = () => {
   const [balance, setBalance] = useState(0)
@@ -35,7 +36,9 @@ const WalletDisplay = () => {
 
   return (
     <div>
-      <p>{publicKey ? `Balance: ${balance.toFixed(4)} SOL` : 'Please connect your wallet'}</p>
+      <p>
+        {publicKey ? `Balance: ${balance.toFixed(4)} SOL` : <p className="text-red-700">Please connect your wallet</p>}
+      </p>
     </div>
   )
 }

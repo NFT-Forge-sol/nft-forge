@@ -29,37 +29,30 @@ function App() {
   return (
     <>
       <WalletContextProvider>
-        <div>
-          <a href="https://vite.dev" target="_blank">
-            <img src={viteLogo} className="logo" alt="Vite logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="logo react" alt="React logo" />
-          </a>
-        </div>
-        <h1>Vite + React</h1>
+        <h1 className="pb-3">Vite + React</h1>
+        <WalletMultiButton />
+        <WalletDisplay />
+
         <div className="card">
-          <div>
+          <div className="pb-3">
             <input type="range" min={100} max={1000} value={range} step={100} onChange={handleRangeChange} />
             <label>Number of NFTs: </label>
             <input type="number" min={100} max={1000} value={range} onChange={handleRangeChange} onBlur={handleBlur} />
           </div>
           <div>
-            <Select className="max-w-xs" placeholder="Select a style" label="Style">
+            <Select className="max-w-xs pb-3" placeholder="Select a style" label="Style">
               <SelectItem key={0}>Drawing</SelectItem>
               <SelectItem key={1}>8-Bit</SelectItem>
               <SelectItem key={2}>Realism</SelectItem>
             </Select>
           </div>
           <div>
-            <Select className="max-w-xs" placeholder="Select a background" label="Background">
+            <Select className="max-w-xs pb-3" placeholder="Select a background" label="Background">
               <SelectItem key={0}>Full Color</SelectItem>
               <SelectItem key={1}>Fade</SelectItem>
               <SelectItem key={2}>City</SelectItem>
             </Select>
           </div>
-          <WalletDisplay />
-          <WalletMultiButton />
           <h1>Create NFT from Image </h1>
           <ProjectForm />
         </div>

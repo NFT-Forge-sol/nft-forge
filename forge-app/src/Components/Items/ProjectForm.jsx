@@ -32,7 +32,7 @@ const ProjectForm = () => {
   }
 
   const handleAddMetadata = () => {
-    setMetadata([...metadata, { key: '', value: '' }])
+    setMetadata([...metadata, { trait_type: '', value: '' }])
   }
 
   const handleMetadataChange = (index, type, value) => {
@@ -68,8 +68,13 @@ const ProjectForm = () => {
   }
 
   const mintNFT = async () => {
-    if (!imageName || !description || !file || !publicKey) {
+    if (!imageName || !description || !file) {
       setError('Please fill in all fields and upload a valid image!')
+      return
+    }
+
+    if (!publicKey) {
+      setError('Please connect your wallet!')
       return
     }
 
@@ -88,6 +93,8 @@ const ProjectForm = () => {
         image: imageUri,
         attributes: metadata,
       }
+
+      console.log(metadataObj)
 
       const nftMint = await actions.createNFT({
         connection,
@@ -145,10 +152,10 @@ const ProjectForm = () => {
             <Input
               fullWidth
               type="text"
-              label="Key"
-              placeholder="Enter metadata key"
+              label="Trait Type"
+              placeholder="Enter metadata trait type"
               value={meta.key}
-              onChange={(e) => handleMetadataChange(index, 'key', e.target.value)}
+              onChange={(e) => handleMetadataChange(index, 'trait_type', e.target.value)}
             />
             <Input
               fullWidth
