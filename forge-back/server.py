@@ -1,15 +1,22 @@
 from flask import Flask, request, send_file, jsonify  
 from openai import OpenAI
 from flask_cors import CORS
+from dotenv import load_dotenv
+import requests
 import base64
+import os
 import io
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 
 
-XAI_API_KEY = "xai-RgX1qIuyNvg0Alqx1HE7OZQgkeeDGc0LPRLAoRY31uz2e0S3MjHSvyLUFiNnSiYn0MwFkU6ABBRuCEpM"
-BASE_URL = "https://api.x.ai/v1" 
+XAI_API_KEY = os.getenv("XAI_API_KEY") 
+BASE_URL = os.getenv("BASE_URL")
+PINATA_API_KEY = os.getenv("PINATA_API_KEY")
+PINATA_API_SECRET = os.getenv("PINATA_API_SECRET")
 
 client = OpenAI(
     api_key=XAI_API_KEY,
@@ -41,6 +48,30 @@ def generate_image():
     except Exception as e:
         app.logger.error(f"Error while generating the image: {str(e)}")
         return f"An error was thrown: {str(e)}", 500
+    
+@app.route('/api/upload-to-pinata', methods=['POST'])
+def upload_to_pinata():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files['file']
+    
+    url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+    headers = {
+        "pinata_api_key": PINATA_API_KEY,
+        "pinata_secret_api_key": PINATA_API_SECRET,
+    }
+    files = {
+        'file': (file.filename, file.stream, file.mimetype),
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, files=files)
+        response.raise_for_status()
+        pinata_response = response.json()
+        return jsonify(pinata_response), 200
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/list-models', methods=['GET'])
 def list_models():

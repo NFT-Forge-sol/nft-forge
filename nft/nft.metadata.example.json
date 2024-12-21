@@ -1,0 +1,9 @@
+{
+  "name": "My First NFT #1",
+  "description": "This is my first NFT ever!",
+  "image": "ipfs://bafybeiahfsvde7tjzr3rkk26ullka4w7kajxu3uisbf2yau4ud36vm257q",
+  "attributes": [
+    { "trait_type": "Edition", "value": "First" },
+    { "trait_type": "Awesomeness", "value": "100%" }
+  ]
+}
