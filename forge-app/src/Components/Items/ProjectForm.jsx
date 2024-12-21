@@ -14,7 +14,7 @@ const ProjectForm = () => {
   const [status, setStatus] = useState('')
   const [imageLink, setImageLink] = useState('')
   const [imageBuffer, setImageBuffer] = useState(null)
-  const [metadata, setMetadata] = useState([]) // Liste des métadonnées
+  const [metadata, setMetadata] = useState([])
 
   const { publicKey, wallet } = useWallet()
 
