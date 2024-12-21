@@ -4,6 +4,10 @@ import './index.css'
 import App from './App.jsx'
 import ThemeProvider from './Components/Tools/ThemeProvider.jsx'
 import { Toaster } from 'sonner'
+import { Buffer } from 'buffer/'
+import process from 'process'
+window.Buffer = Buffer
+window.process = process
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

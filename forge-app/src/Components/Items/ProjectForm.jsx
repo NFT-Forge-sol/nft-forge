@@ -1,20 +1,21 @@
 import { useState } from 'react'
 import { Button, Input, Form } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { Connection } from '@solana/web3.js'
-import { actions } from '@metaplex/js'
+import { Connection, PublicKey } from '@solana/web3.js'
+import { Metaplex, keypairIdentity } from '@metaplex-foundation/js'
 import FileInput from './FileInput'
+import { Buffer } from 'buffer/'
 
 const ProjectForm = () => {
-  const [imageName, setProjectName] = useState('')
-  const [description, setDescription] = useState('')
+  const [imageName, setImageName] = useState('')
+  const [symbol, setSymbol] = useState('')
   const [file, setFile] = useState(null)
   const [fileName, setFileName] = useState('')
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const [imageLink, setImageLink] = useState('')
-  const [imageBuffer, setImageBuffer] = useState(null)
   const [metadata, setMetadata] = useState([])
+  const [mintedNft, setMintedNft] = useState(null)
 
   const { publicKey, wallet } = useWallet()
 
@@ -25,9 +26,9 @@ const ProjectForm = () => {
       setError('')
       const reader = new FileReader()
       reader.onloadend = () => {
-        setImageBuffer(reader.result)
+        setImageLink(reader.result)
       }
-      reader.readAsArrayBuffer(file)
+      reader.readAsDataURL(file)
     }
   }
 
@@ -67,8 +68,8 @@ const ProjectForm = () => {
     }
   }
 
-  const mintNFT = async () => {
-    if (!imageName || !description || !file) {
+  const createAndMintNFT = async () => {
+    if (!imageName || !symbol || !file) {
       setError('Please fill in all fields and upload a valid image!')
       return
     }
@@ -84,38 +85,37 @@ const ProjectForm = () => {
       const imageUri = `https://gateway.pinata.cloud/ipfs/${pinataResponse.IpfsHash}`
       setImageLink(imageUri)
 
-      setStatus('Minting NFT...')
+      setStatus('Creating and Minting NFT...')
       const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
+      const metaplex = Metaplex.make(connection)
+      metaplex.use(keypairIdentity(wallet.adapter.secretKey))
 
-      const metadataObj = {
+      const { nft } = await metaplex.nfts().create({
+        uri: imageUri,
         name: imageName,
-        description: description,
-        image: imageUri,
-        attributes: metadata,
-      }
-
-      console.log(metadataObj)
-
-      const nftMint = await actions.createNFT({
-        connection,
-        wallet,
-        metadata: metadataObj,
+        symbol: symbol,
+        sellerFeeBasisPoints: 500, // 5% royalties
+        creators: [
+          {
+            address: publicKey,
+            share: 100,
+          },
+        ],
+        maxSupply: 1,
+        isMutable: true,
       })
 
+      setMintedNft(nft)
       setStatus('NFT minted successfully!')
-      console.log('NFT Minted: ', nftMint)
+      console.log('NFT Minted:', nft)
     } catch (error) {
       setStatus('Minting failed: ' + error.message)
+      console.error(error)
     }
   }
 
   const handleSubmit = async () => {
-    if (!imageName || !description || !file) {
-      setError('Please fill in all fields and upload a valid image!')
-      return
-    }
-
-    await mintNFT()
+    await createAndMintNFT()
   }
 
   return (
@@ -128,17 +128,17 @@ const ProjectForm = () => {
         label="Project Name"
         placeholder="Enter project name"
         value={imageName}
-        onChange={(e) => setProjectName(e.target.value)}
+        onChange={(e) => setImageName(e.target.value)}
         required
       />
 
       <Input
         className="mt-3"
         type="text"
-        label="Image Description"
-        placeholder="Enter image description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        label="Symbol"
+        placeholder="Enter symbol"
+        value={symbol}
+        onChange={(e) => setSymbol(e.target.value)}
         required
       />
 
@@ -154,7 +154,7 @@ const ProjectForm = () => {
               type="text"
               label="Trait Type"
               placeholder="Enter metadata trait type"
-              value={meta.key}
+              value={meta.trait_type}
               onChange={(e) => handleMetadataChange(index, 'trait_type', e.target.value)}
             />
             <Input
@@ -174,7 +174,7 @@ const ProjectForm = () => {
 
       {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
       <Button className="mt-3" onPress={handleSubmit}>
-        Generate Project + Mint NFT
+        Create and Mint NFT
       </Button>
       {status && <p>{status}</p>}
       {publicKey && <p>Connected with PublicKey: {publicKey.toBase58()}</p>}
@@ -182,6 +182,12 @@ const ProjectForm = () => {
         <a href={imageLink} target="_blank" rel="noopener noreferrer">
           View Uploaded Image
         </a>
+      )}
+      {mintedNft && (
+        <div>
+          <h4>Minted NFT:</h4>
+          <pre>{JSON.stringify(mintedNft, null, 2)}</pre>
+        </div>
       )}
     </Form>
   )

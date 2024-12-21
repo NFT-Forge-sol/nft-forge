@@ -8,6 +8,7 @@ import WalletContextProvider from './Components/Tools/WalletContextProvider'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { Select, SelectItem } from '@nextui-org/react'
 import ProjectForm from './Components/Items/ProjectForm'
+import { Buffer } from 'buffer/'
 
 function App() {
   const [range, setRange] = useState(100)
