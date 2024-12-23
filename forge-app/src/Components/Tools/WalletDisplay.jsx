@@ -36,9 +36,7 @@ const WalletDisplay = () => {
 
   return (
     <div>
-      <p>
-        {publicKey ? `Balance: ${balance.toFixed(4)} SOL` : <p className="text-red-700">Please connect your wallet</p>}
-      </p>
+      <p className="text-red-700">{publicKey ? `Balance: ${balance.toFixed(4)} SOL` : 'Please connect your wallet'}</p>
     </div>
   )
 }

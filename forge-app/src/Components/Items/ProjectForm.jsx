@@ -1,34 +1,27 @@
 import { useState } from 'react'
 import { Button, Input, Form } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { Connection, PublicKey } from '@solana/web3.js'
-import { Metaplex, keypairIdentity } from '@metaplex-foundation/js'
+import { createProgrammableNft, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
+import { generateSigner, percentAmount, signerIdentity } from '@metaplex-foundation/umi'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+import { base58 } from '@metaplex-foundation/umi/serializers'
 import FileInput from './FileInput'
-import { Buffer } from 'buffer/'
 
 const ProjectForm = () => {
   const [imageName, setImageName] = useState('')
   const [symbol, setSymbol] = useState('')
   const [file, setFile] = useState(null)
-  const [fileName, setFileName] = useState('')
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
-  const [imageLink, setImageLink] = useState('')
   const [metadata, setMetadata] = useState([])
   const [mintedNft, setMintedNft] = useState(null)
 
-  const { publicKey, wallet } = useWallet()
+  const { wallet, publicKey } = useWallet()
 
   const handleFileChange = (file) => {
     setFile(file)
     if (file) {
-      setFileName(file.name)
       setError('')
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImageLink(reader.result)
-      }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -57,14 +50,14 @@ const ProjectForm = () => {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to upload to Pinata')
+        throw new Error(`Failed to upload file: ${response.statusText}`)
       }
 
       const data = await response.json()
-      return data
+      return `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`
     } catch (error) {
-      console.error('Upload to Pinata failed:', error)
-      throw error
+      console.error(error)
+      throw new Error('Failed to upload file to Pinata.')
     }
   }
 
@@ -79,38 +72,72 @@ const ProjectForm = () => {
       return
     }
 
-    setStatus('Uploading image to Pinata...')
+    console.log('WALLET: ', wallet)
+    console.log('PUBLIC KEY : ', publicKey)
+
     try {
-      const pinataResponse = await uploadToPinata(file)
-      const imageUri = `https://gateway.pinata.cloud/ipfs/${pinataResponse.IpfsHash}`
-      setImageLink(imageUri)
+      setStatus('Uploading image to IPFS...')
+
+      // Initialisation de umi
+      const umi = createUmi('https://api.devnet.solana.com').use(mplTokenMetadata())
+
+      // Création du signer et ajout de signerIdentity
+      const signer = generateSigner(umi)
+      umi.use(signerIdentity(signer))
+
+      const balance = await umi.rpc.getBalance(publicKey)
+      console.log(`Balance: ${balance.basisPoints} lamparts`)
+
+      // Airdrop to wallet for testing | Remove on production
+      // await umi.rpc.airdrop(publicKey, sol(1))
+
+      // Upload the image to Pinata
+      const imageUri = await uploadToPinata(file)
+
+      setStatus('Uploading metadata to IPFS...')
+      const metadataObj = {
+        name: imageName,
+        description: 'This is an NFT on Solana',
+        image: imageUri,
+        external_url: 'https://example.com',
+        attributes: metadata,
+        properties: {
+          files: [
+            {
+              uri: imageUri,
+              type: file.type,
+            },
+          ],
+          category: 'image',
+        },
+      }
+
+      const metadataBlob = new Blob([JSON.stringify(metadataObj)], { type: 'application/json' })
+      const metadataFile = new File([metadataBlob], 'metadata.json')
+      const metadataUri = await uploadToPinata(metadataFile)
 
       setStatus('Creating and Minting NFT...')
-      const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
-      const metaplex = Metaplex.make(connection)
-      metaplex.use(keypairIdentity(wallet.adapter.secretKey))
 
-      const { nft } = await metaplex.nfts().create({
-        uri: imageUri,
+      const tx = await createProgrammableNft(umi, {
+        mint: signer,
+        sellerFeeBasisPoints: 550, // 5.5%
         name: imageName,
-        symbol: symbol,
-        sellerFeeBasisPoints: 500, // 5% royalties
-        creators: [
-          {
-            address: publicKey,
-            share: 100,
-          },
-        ],
-        maxSupply: 1,
-        isMutable: true,
-      })
+        uri: metadataUri,
+      }).sendAndConfirm(umi)
 
-      setMintedNft(nft)
+      const signature = base58.deserialize(tx.signature)[0]
+      setMintedNft(signer.publicKey)
       setStatus('NFT minted successfully!')
-      console.log('NFT Minted:', nft)
+
+      console.log('\npNFT Created')
+      console.log('View Transaction on Solana Explorer')
+      console.log(`https://explorer.solana.com/tx/${signature}?cluster=devnet`)
+      console.log('\n')
+      console.log('View NFT on Metaplex Explorer')
+      console.log(`https://explorer.solana.com/address/${nftSigner.publicKey}?cluster=devnet`)
     } catch (error) {
+      console.error('Error:', error)
       setStatus('Minting failed: ' + error.message)
-      console.error(error)
     }
   }
 
@@ -177,12 +204,6 @@ const ProjectForm = () => {
         Create and Mint NFT
       </Button>
       {status && <p>{status}</p>}
-      {publicKey && <p>Connected with PublicKey: {publicKey.toBase58()}</p>}
-      {imageLink && (
-        <a href={imageLink} target="_blank" rel="noopener noreferrer">
-          View Uploaded Image
-        </a>
-      )}
       {mintedNft && (
         <div>
           <h4>Minted NFT:</h4>
