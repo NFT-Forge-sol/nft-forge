@@ -71,6 +71,7 @@ def upload_to_pinata():
         pinata_response = response.json()
         return jsonify(pinata_response), 200
     except requests.exceptions.RequestException as e:
+        print(str(e))
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/list-models', methods=['GET'])

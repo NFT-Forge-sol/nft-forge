@@ -17,6 +17,7 @@ export default defineConfig({
   ],
   define: {
     global: 'globalThis',
+    'process.env': process.env ?? {},
   },
   resolve: {
     alias: {
@@ -28,6 +29,7 @@ export default defineConfig({
     include: ['buffer', 'process', 'stream-browserify'],
     esbuildOptions: {
       target: 'esnext',
+      plugins: [NodeGlobalsPolyfillPlugin({ buffer: true })],
       define: {
         global: 'globalThis',
       },

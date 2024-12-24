@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { Button, Input, Form } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { createProgrammableNft, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
-import { generateSigner, percentAmount, signerIdentity } from '@metaplex-foundation/umi'
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { base58 } from '@metaplex-foundation/umi/serializers'
+import { Metaplex, keypairIdentity } from '@metaplex-foundation/js'
+import { clusterApiUrl, Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
 import FileInput from './FileInput'
 
 const ProjectForm = () => {
@@ -61,7 +59,38 @@ const ProjectForm = () => {
     }
   }
 
-  const createAndMintNFT = async () => {
+  const mintProgrammableNft = async (metadataUri, name, sellerFee, symbol, creators) => {
+    setStatus('Connecting to Solana devnet...')
+    const SOLANA_CONNECTION = new Connection(clusterApiUrl('devnet'))
+    const METAPLEX = Metaplex.make(SOLANA_CONNECTION).use(keypairIdentity(wallet.adapter))
+
+    console.log('Wallet PublicKey: ', publicKey.toBase58())
+    setStatus('Minting NFT...')
+
+    const transactionBuilder = await METAPLEX.nfts().builders().create({
+      uri: metadataUri,
+      name: name,
+      sellerFeeBasisPoints: sellerFee,
+      symbol: symbol,
+      creators: creators,
+      isMutable: true,
+      isCollection: false,
+    })
+
+    const { signature, confirmResponse } = await METAPLEX.rpc().sendAndConfirmTransaction(transactionBuilder)
+
+    if (confirmResponse.value.err) {
+      throw new Error('Failed to confirm transaction.')
+    }
+
+    const { mintAddress } = transactionBuilder.getContext()
+    console.log(`   Success!🎉`)
+    console.log(`   Minted NFT: https://explorer.solana.com/address/${mintAddress.toString()}?cluster=devnet`)
+    console.log(`   Tx: https://explorer.solana.com/tx/${signature}?cluster=devnet`)
+    setMintedNft(mintAddress)
+  }
+
+  const uploadAndCreateNFT = async () => {
     if (!imageName || !symbol || !file) {
       setError('Please fill in all fields and upload a valid image!')
       return
@@ -77,19 +106,6 @@ const ProjectForm = () => {
 
     try {
       setStatus('Uploading image to IPFS...')
-
-      // Initialisation de umi
-      const umi = createUmi('https://api.devnet.solana.com').use(mplTokenMetadata())
-
-      // Création du signer et ajout de signerIdentity
-      const signer = generateSigner(umi)
-      umi.use(signerIdentity(signer))
-
-      const balance = await umi.rpc.getBalance(publicKey)
-      console.log(`Balance: ${balance.basisPoints} lamparts`)
-
-      // Airdrop to wallet for testing | Remove on production
-      // await umi.rpc.airdrop(publicKey, sol(1))
 
       // Upload the image to Pinata
       const imageUri = await uploadToPinata(file)
@@ -118,23 +134,9 @@ const ProjectForm = () => {
 
       setStatus('Creating and Minting NFT...')
 
-      const tx = await createProgrammableNft(umi, {
-        mint: signer,
-        sellerFeeBasisPoints: 550, // 5.5%
-        name: imageName,
-        uri: metadataUri,
-      }).sendAndConfirm(umi)
+      const creators = [{ address: wallet.adapter.publicKey, share: 100 }]
 
-      const signature = base58.deserialize(tx.signature)[0]
-      setMintedNft(signer.publicKey)
-      setStatus('NFT minted successfully!')
-
-      console.log('\npNFT Created')
-      console.log('View Transaction on Solana Explorer')
-      console.log(`https://explorer.solana.com/tx/${signature}?cluster=devnet`)
-      console.log('\n')
-      console.log('View NFT on Metaplex Explorer')
-      console.log(`https://explorer.solana.com/address/${nftSigner.publicKey}?cluster=devnet`)
+      await mintProgrammableNft(metadataUri, imageName, 500, symbol, creators)
     } catch (error) {
       console.error('Error:', error)
       setStatus('Minting failed: ' + error.message)
@@ -142,7 +144,7 @@ const ProjectForm = () => {
   }
 
   const handleSubmit = async () => {
-    await createAndMintNFT()
+    await uploadAndCreateNFT()
   }
 
   return (
