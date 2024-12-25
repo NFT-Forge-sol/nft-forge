@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, Input, Form } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { Metaplex, keypairIdentity } from '@metaplex-foundation/js'
+import { Metaplex, keypairIdentity, walletAdapterIdentity } from '@metaplex-foundation/js'
 import { clusterApiUrl, Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
 import FileInput from './FileInput'
 
@@ -62,32 +62,56 @@ const ProjectForm = () => {
   const mintProgrammableNft = async (metadataUri, name, sellerFee, symbol, creators) => {
     setStatus('Connecting to Solana devnet...')
     const SOLANA_CONNECTION = new Connection(clusterApiUrl('devnet'))
-    const METAPLEX = Metaplex.make(SOLANA_CONNECTION).use(keypairIdentity(wallet.adapter))
+    const METAPLEX = Metaplex.make(SOLANA_CONNECTION).use(walletAdapterIdentity(wallet.adapter))
 
-    console.log('Wallet PublicKey: ', publicKey.toBase58())
+    // IF NEEDED TO AIRDROP SOLANA TO ACCOUNT | ONLY ON DEV
+    /*
+    try {
+      const airdropSignature = await SOLANA_CONNECTION.requestAirdrop(wallet.publicKey, 2e9) // 2 SOL (in lamports)
+      setStatus('Airdropping SOL to wallet...')
+      await SOLANA_CONNECTION.confirmTransaction(
+        {
+          signature: airdropSignature,
+          commitment: 'confirmed', 
+        },
+        { strategy: 'confirmed' } 
+      )
+      setStatus('Airdrop successful. Minting NFT...')
+    } catch (airdropError) {
+      console.error('Airdrop error:', airdropError)
+      setError('Failed to airdrop SOL. Ensure your wallet is connected to Devnet.')
+      return
+    }*/
+
+    console.log('Wallet PublicKey: ', publicKey?.toBase58())
     setStatus('Minting NFT...')
 
-    const transactionBuilder = await METAPLEX.nfts().builders().create({
-      uri: metadataUri,
-      name: name,
-      sellerFeeBasisPoints: sellerFee,
-      symbol: symbol,
-      creators: creators,
-      isMutable: true,
-      isCollection: false,
-    })
+    try {
+      const transactionBuilder = await METAPLEX.nfts().builders().create({
+        uri: metadataUri,
+        name: name,
+        sellerFeeBasisPoints: sellerFee,
+        symbol: symbol,
+        creators: creators,
+        isMutable: false,
+        isCollection: false,
+      })
 
-    const { signature, confirmResponse } = await METAPLEX.rpc().sendAndConfirmTransaction(transactionBuilder)
+      const { signature, confirmResponse } = await METAPLEX.rpc().sendAndConfirmTransaction(transactionBuilder)
 
-    if (confirmResponse.value.err) {
-      throw new Error('Failed to confirm transaction.')
+      if (confirmResponse.value.err) {
+        throw new Error('Failed to confirm transaction.')
+      }
+
+      const { mintAddress } = transactionBuilder.getContext()
+      console.log(`Success!🎉`)
+      console.log(`Minted NFT: https://explorer.solana.com/address/${mintAddress.toString()}?cluster=devnet`)
+      console.log(`Tx: https://explorer.solana.com/tx/${signature}?cluster=devnet`)
+      setMintedNft(mintAddress)
+    } catch (error) {
+      console.error('Minting error:', error)
+      setStatus('Minting failed: ' + error.message)
     }
-
-    const { mintAddress } = transactionBuilder.getContext()
-    console.log(`   Success!🎉`)
-    console.log(`   Minted NFT: https://explorer.solana.com/address/${mintAddress.toString()}?cluster=devnet`)
-    console.log(`   Tx: https://explorer.solana.com/tx/${signature}?cluster=devnet`)
-    setMintedNft(mintAddress)
   }
 
   const uploadAndCreateNFT = async () => {
@@ -100,9 +124,6 @@ const ProjectForm = () => {
       setError('Please connect your wallet!')
       return
     }
-
-    console.log('WALLET: ', wallet)
-    console.log('PUBLIC KEY : ', publicKey)
 
     try {
       setStatus('Uploading image to IPFS...')
@@ -134,7 +155,7 @@ const ProjectForm = () => {
 
       setStatus('Creating and Minting NFT...')
 
-      const creators = [{ address: wallet.adapter.publicKey, share: 100 }]
+      const creators = [{ address: publicKey, share: 100 }]
 
       await mintProgrammableNft(metadataUri, imageName, 500, symbol, creators)
     } catch (error) {
