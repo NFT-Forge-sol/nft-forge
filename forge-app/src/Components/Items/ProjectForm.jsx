@@ -3,11 +3,12 @@ import { Button, Input, Form } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Metaplex, keypairIdentity, walletAdapterIdentity } from '@metaplex-foundation/js'
 import { clusterApiUrl, Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
+import { uploadFile } from '../Tools/ApiProvider'
 import FileInput from './FileInput'
 
 const ProjectForm = () => {
   const [imageName, setImageName] = useState('')
-  const [symbol, setSymbol] = useState('')
+  const [description, setDescription] = useState('')
   const [file, setFile] = useState(null)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
@@ -35,28 +36,6 @@ const ProjectForm = () => {
 
   const handleRemoveMetadata = (index) => {
     setMetadata(metadata.filter((_, i) => i !== index))
-  }
-
-  const uploadToPinata = async (file) => {
-    const formData = new FormData()
-    formData.append('file', file)
-
-    try {
-      const response = await fetch('http://localhost:5000/api/upload-to-pinata', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to upload file: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      return `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`
-    } catch (error) {
-      console.error(error)
-      throw new Error('Failed to upload file to Pinata.')
-    }
   }
 
   const mintProgrammableNft = async (metadataUri, name, sellerFee, symbol, creators) => {
@@ -115,7 +94,7 @@ const ProjectForm = () => {
   }
 
   const uploadAndCreateNFT = async () => {
-    if (!imageName || !symbol || !file) {
+    if (!imageName || !description || !file) {
       setError('Please fill in all fields and upload a valid image!')
       return
     }
@@ -129,12 +108,12 @@ const ProjectForm = () => {
       setStatus('Uploading image to IPFS...')
 
       // Upload the image to Pinata
-      const imageUri = await uploadToPinata(file)
+      const imageUri = await uploadFile(file)
 
       setStatus('Uploading metadata to IPFS...')
       const metadataObj = {
         name: imageName,
-        description: 'This is an NFT on Solana',
+        description: description,
         image: imageUri,
         external_url: 'https://example.com',
         attributes: metadata,
@@ -151,13 +130,13 @@ const ProjectForm = () => {
 
       const metadataBlob = new Blob([JSON.stringify(metadataObj)], { type: 'application/json' })
       const metadataFile = new File([metadataBlob], 'metadata.json')
-      const metadataUri = await uploadToPinata(metadataFile)
+      const metadataUri = await uploadFile(metadataFile)
 
       setStatus('Creating and Minting NFT...')
 
       const creators = [{ address: publicKey, share: 100 }]
 
-      await mintProgrammableNft(metadataUri, imageName, 500, symbol, creators)
+      await mintProgrammableNft(metadataUri, imageName, 500, description, creators)
     } catch (error) {
       console.error('Error:', error)
       setStatus('Minting failed: ' + error.message)
@@ -185,10 +164,10 @@ const ProjectForm = () => {
       <Input
         className="mt-3"
         type="text"
-        label="Symbol"
-        placeholder="Enter symbol"
-        value={symbol}
-        onChange={(e) => setSymbol(e.target.value)}
+        label="Description"
+        placeholder="Enter description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
         required
       />
 

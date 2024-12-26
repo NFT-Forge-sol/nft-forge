@@ -9,6 +9,8 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { Select, SelectItem } from '@nextui-org/react'
 import ProjectForm from './Components/Items/ProjectForm'
 import { Buffer } from 'buffer/'
+import CollectionForm from './Components/Items/CollectionForm'
+import CollectionsWallet from './Components/Items/CollectionsWallet'
 
 function App() {
   const [range, setRange] = useState(100)
@@ -30,11 +32,10 @@ function App() {
   return (
     <>
       <WalletContextProvider>
-        <h1 className="pb-3">Vite + React</h1>
         <WalletMultiButton />
         <WalletDisplay />
 
-        <div className="card">
+        <div className="w-[100%]">
           <div className="pb-3">
             <input type="range" min={100} max={1000} value={range} step={100} onChange={handleRangeChange} />
             <label>Number of NFTs: </label>
@@ -54,8 +55,17 @@ function App() {
               <SelectItem key={2}>City</SelectItem>
             </Select>
           </div>
-          <h1>Create NFT from Image </h1>
-          <ProjectForm />
+          <div className="flex ">
+            <div className="w-[100%]">
+              <h1>Create Collection</h1>
+              <CollectionForm />
+            </div>
+            <div className="w-[100%]">
+              <h1>Create NFT from Image </h1>
+              <ProjectForm />
+            </div>
+          </div>
+          <CollectionsWallet />
         </div>
         <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
       </WalletContextProvider>
