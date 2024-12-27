@@ -4,10 +4,11 @@ import { clusterApiUrl, Connection } from '@solana/web3.js'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Button, Spinner } from '@nextui-org/react'
 
-const CollectionsWallet = () => {
+const CollectionsWallet = ({ onCollectionSelect }) => {
   const [collections, setCollections] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedCollection, setSelectedCollection] = useState(null)
 
   const { wallet } = useWallet()
 
@@ -44,6 +45,13 @@ const CollectionsWallet = () => {
     }
   }, [wallet?.adapter?.connected])
 
+  const handleCollectionSelect = (collection) => {
+    setSelectedCollection(collection)
+    if (onCollectionSelect) {
+      onCollectionSelect(collection)
+    }
+  }
+
   return (
     <div className="pt-[50px]">
       <Button onPress={fetchCollections} disabled={loading} className="mb-4">
@@ -54,7 +62,15 @@ const CollectionsWallet = () => {
         {collections.length > 0 ? (
           <ul>
             {collections.map((collection, index) => (
-              <li key={index} className="mb-4">
+              <li
+                key={index}
+                className={`mb-4 p-4 border rounded cursor-pointer hover:bg-gray-100 ${
+                  selectedCollection?.mintAddress.toBase58() === collection.mintAddress.toBase58()
+                    ? 'border-blue-500 border-2'
+                    : ''
+                }`}
+                onClick={() => handleCollectionSelect(collection)}
+              >
                 <p>
                   <strong>Name:</strong> {collection.name || 'Unnamed Collection'}
                 </p>

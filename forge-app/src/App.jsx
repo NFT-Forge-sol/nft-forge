@@ -11,10 +11,11 @@ import ProjectForm from './Components/Items/ProjectForm'
 import { Buffer } from 'buffer/'
 import CollectionForm from './Components/Items/CollectionForm'
 import CollectionsWallet from './Components/Items/CollectionsWallet'
+import SelectNft from './Components/Items/SelectNft'
 
 function App() {
   const [range, setRange] = useState(100)
-
+  const [selectedCollection, setSelectedCollection] = useState(null)
   const handleRangeChange = (event) => {
     setRange(event.target.value)
   }
@@ -65,9 +66,9 @@ function App() {
               <ProjectForm />
             </div>
           </div>
-          <CollectionsWallet />
+          <CollectionsWallet onCollectionSelect={setSelectedCollection} />
+          <SelectNft selectedCollection={selectedCollection} />
         </div>
-        <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
       </WalletContextProvider>
     </>
   )

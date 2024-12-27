@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js'
-import { clusterApiUrl, Connection } from '@solana/web3.js'
+import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Button, Input, Form } from '@nextui-org/react'
 import FileInput from './FileInput'
@@ -24,6 +24,12 @@ const CollectionForm = () => {
   }
 
   const handleCreateCollection = async () => {
+    if (!wallet?.adapter?.publicKey) {
+      setError('Please connect your wallet first!')
+      setSuccess('')
+      return
+    }
+
     if (!collectionName) {
       setError('Please fill in the collection name!')
       setSuccess('')
@@ -37,7 +43,11 @@ const CollectionForm = () => {
     }
 
     try {
+      setError('')
+      console.log('Starting collection creation process...')
+
       const imageUri = await uploadFile(file)
+      console.log('Image uploaded:', imageUri)
 
       const metadataUri = await uploadFile(
         new Blob(
@@ -52,26 +62,57 @@ const CollectionForm = () => {
           { type: 'application/json' }
         )
       )
+      console.log('Metadata uploaded:', metadataUri)
 
       const connection = new Connection(clusterApiUrl('devnet'))
       const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet.adapter))
 
-      const { mintAddress } = await metaplex.nfts().create({
+      const walletPublicKey = new PublicKey(wallet.adapter.publicKey.toBase58())
+
+      console.log('Creating collection NFT...')
+      const { nft: collectionNft } = await metaplex.nfts().create({
         uri: metadataUri,
         name: collectionName,
         symbol: collectionSymbol,
         sellerFeeBasisPoints: 500,
         isCollection: true,
+        creators: [
+          {
+            address: walletPublicKey,
+            share: 100,
+            verified: false,
+          },
+        ],
+        collection: null,
+        uses: null,
       })
 
-      setSuccess(`Collection created! Mint address: ${mintAddress.toBase58()}`)
+      console.log('Collection NFT created:', collectionNft.address.toBase58())
+
+      console.log('Updating collection authority...')
+      await metaplex.nfts().update({
+        nftOrSft: collectionNft,
+        newAuthority: walletPublicKey,
+        newUpdateAuthority: walletPublicKey,
+      })
+
+      const verifiedNft = await metaplex.nfts().findByMint({ mintAddress: collectionNft.address })
+      console.log('Collection verified:', verifiedNft.address.toBase58())
+      console.log('Collection authority:', verifiedNft.updateAuthorityAddress.toBase58())
+
+      setSuccess(`Collection created! Mint address: ${collectionNft.address.toBase58()}`)
       setError('')
       setCollectionName('')
       setCollectionDescription('')
       setCollectionSymbol('')
       setFile(null)
     } catch (e) {
-      setError(`Error creating collection: ${e.message}`)
+      console.error('Collection creation error:', e)
+      let errorMessage = e.message
+      if (e.name === 'AccountNotFoundError') {
+        errorMessage = 'Failed to create collection. Please ensure you have enough SOL in your wallet and try again.'
+      }
+      setError(`Error creating collection: ${errorMessage}`)
       setSuccess('')
     }
   }
