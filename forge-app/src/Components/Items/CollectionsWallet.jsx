@@ -30,7 +30,6 @@ const CollectionsWallet = () => {
           nft.collectionDetails && nft.collectionDetails.size !== undefined && nft.collectionDetails.version === 'V1'
       )
 
-      console.log(collections)
       setCollections(collections)
     } catch (e) {
       setError(`Error fetching collections: ${e.message}`)
