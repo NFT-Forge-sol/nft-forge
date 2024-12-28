@@ -75,22 +75,23 @@ const SelectNft = ({ onNftSelect, selectedCollection }) => {
       setLoading(true)
       setAddStatus({ type: 'loading', message: 'Adding NFT to collection...' })
 
+      const walletPublicKey = new PublicKey(wallet.adapter.publicKey.toBase58())
+
       const connection = new Connection(clusterApiUrl('devnet'))
       const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet.adapter))
 
+      console.log(selectedNft)
+      console.log(selectedCollection)
       const nftMint = new PublicKey(selectedNft.address)
       const collectionMint = new PublicKey(selectedCollection.mintAddress)
-
-      const nft = await metaplex.nfts().findByMint({
-        mintAddress: collectionMint,
-      })
 
       console.log('Calling verifyCollection...')
       await metaplex.nfts().verifyCollection({
         mintAddress: nftMint,
         collectionMintAddress: collectionMint,
         isSizedCollection: true,
-        collectionAuthority: new PublicKey(nft.updateAuthorityAddress),
+        collectionUpdateAuthority: walletPublicKey,
+        collectionAuthority: walletPublicKey,
       })
 
       console.log('NFT successfully added to collection!')

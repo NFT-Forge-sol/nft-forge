@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import PropTypes from 'prop-types'
 import { toast } from 'sonner'
 
-const FileInput = ({ onFileChange }) => {
+const FileInput = ({ onFileChange, label }) => {
   const [fileName, setFileName] = useState('')
   const [error, setError] = useState('')
   const [previewUrl, setPreviewUrl] = useState(null)
+  // Generate unique ID for this instance
+  const uniqueId = useId()
+  const inputId = `dropzone-file-${uniqueId}`
 
   const allowedExtensions = ['svg', 'png', 'jpg', 'jpeg']
 
@@ -36,7 +39,7 @@ const FileInput = ({ onFileChange }) => {
     <>
       <div className="flex items-center justify-center w-full mt-5">
         <label
-          htmlFor="dropzone-file"
+          htmlFor={inputId}
           className="flex flex-col items-center justify-center w-full h-64 border-dashed rounded-lg cursor-pointer bg-default-50 hover:bg-default-100 border-default-200 dark:bg-default-100 hover:border-2 dark:hover:bg-default-50 dark:border-default-600 dark:hover:border-default-500"
         >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -59,6 +62,7 @@ const FileInput = ({ onFileChange }) => {
                 />
               </svg>
             )}
+            {label && <p className="mb-2 text-sm font-semibold text-default-500">{label}</p>}
             {fileName ? (
               <p className="mb-2 text-sm text-default-500 dark:text-default-400">
                 Selected file: <span className="font-semibold">{fileName}</span>
@@ -70,7 +74,7 @@ const FileInput = ({ onFileChange }) => {
             )}
             <p className="text-xs text-default-100 dark:text-default-400">SVG, PNG, JPG, or JPEG</p>
           </div>
-          <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
+          <input id={inputId} type="file" className="hidden" onChange={handleFileChange} />
         </label>
       </div>
       {error && <p className="text-xs text-red-500 dark:text-red-400 pt-2">{error}</p>}
@@ -80,6 +84,7 @@ const FileInput = ({ onFileChange }) => {
 
 FileInput.propTypes = {
   onFileChange: PropTypes.func.isRequired,
+  label: PropTypes.string,
 }
 
 export default FileInput
