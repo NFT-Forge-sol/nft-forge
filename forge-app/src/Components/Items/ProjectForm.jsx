@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button, Input, Form } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Metaplex, keypairIdentity, walletAdapterIdentity } from '@metaplex-foundation/js'
@@ -14,8 +14,36 @@ const ProjectForm = () => {
   const [status, setStatus] = useState('')
   const [metadata, setMetadata] = useState([])
   const [mintedNft, setMintedNft] = useState(null)
+  const [collections, setCollections] = useState([])
+  const [selectedCollection, setSelectedCollection] = useState(null)
 
   const { wallet, publicKey } = useWallet()
+
+  useEffect(() => {
+    const fetchCollections = async () => {
+      if (!publicKey) return
+
+      try {
+        const connection = new Connection(clusterApiUrl('devnet'))
+        const metaplex = new Metaplex(connection)
+
+        const ownerNfts = await metaplex.nfts().findAllByOwner({ owner: publicKey })
+        const userCollections = ownerNfts.filter((nft) => nft.collectionDetails)
+
+        setCollections(
+          userCollections.map((collection) => ({
+            address: collection.address.toString(),
+            name: collection.name,
+            mintAddress: collection.mintAddress.toString(),
+          }))
+        )
+      } catch (error) {
+        console.error('Error fetching collections:', error)
+      }
+    }
+
+    fetchCollections()
+  }, [publicKey])
 
   const handleFileChange = (file) => {
     setFile(file)
@@ -41,55 +69,48 @@ const ProjectForm = () => {
   const mintProgrammableNft = async (metadataUri, name, sellerFee, symbol, creators) => {
     setStatus('Connecting to Solana devnet...')
     const SOLANA_CONNECTION = new Connection(clusterApiUrl('devnet'))
-    const METAPLEX = Metaplex.make(SOLANA_CONNECTION).use(walletAdapterIdentity(wallet.adapter))
-
-    // IF NEEDED TO AIRDROP SOLANA TO ACCOUNT | ONLY ON DEV
-    /*
-    try {
-      const airdropSignature = await SOLANA_CONNECTION.requestAirdrop(wallet.publicKey, 2e9) // 2 SOL (in lamports)
-      setStatus('Airdropping SOL to wallet...')
-      await SOLANA_CONNECTION.confirmTransaction(
-        {
-          signature: airdropSignature,
-          commitment: 'confirmed', 
-        },
-        { strategy: 'confirmed' } 
-      )
-      setStatus('Airdrop successful. Minting NFT...')
-    } catch (airdropError) {
-      console.error('Airdrop error:', airdropError)
-      setError('Failed to airdrop SOL. Ensure your wallet is connected to Devnet.')
-      return
-    }*/
-
-    console.log('Wallet PublicKey: ', publicKey?.toBase58())
-    setStatus('Minting NFT...')
+    const METAPLEX = Metaplex.make(SOLANA_CONNECTION).use(
+      walletAdapterIdentity({
+        publicKey: publicKey,
+        signTransaction: wallet.adapter.signTransaction.bind(wallet.adapter),
+        signAllTransactions: wallet.adapter.signAllTransactions.bind(wallet.adapter),
+        signMessage: wallet.adapter.signMessage?.bind(wallet.adapter),
+      })
+    )
 
     try {
-      const transactionBuilder = await METAPLEX.nfts().builders().create({
+      const nftSettings = {
         uri: metadataUri,
         name: name,
         sellerFeeBasisPoints: sellerFee,
         symbol: symbol,
         creators: creators,
-        isMutable: false,
+        isMutable: true,
         isCollection: false,
-      })
-
-      const { signature, confirmResponse } = await METAPLEX.rpc().sendAndConfirmTransaction(transactionBuilder)
-
-      if (confirmResponse.value.err) {
-        throw new Error('Failed to confirm transaction.')
       }
 
-      const { mintAddress } = transactionBuilder.getContext()
+      if (selectedCollection) {
+        nftSettings.collection = new PublicKey(selectedCollection.mintAddress)
+      }
+
+      const { nft } = await METAPLEX.nfts().create(nftSettings)
+
+      if (selectedCollection) {
+        setStatus('Verifying NFT as part of collection...')
+        await METAPLEX.nfts().verifyCollection({
+          mintAddress: nft.address,
+          collectionMintAddress: new PublicKey(selectedCollection.mintAddress),
+          isSizedCollection: true,
+        })
+      }
+
       console.log(`Success!🎉`)
-      console.log(`Minted NFT: https://explorer.solana.com/address/${mintAddress.toString()}?cluster=devnet`)
-      console.log(`Tx: https://explorer.solana.com/tx/${signature}?cluster=devnet`)
-      setMintedNft(mintAddress)
+      console.log(`Minted NFT: https://explorer.solana.com/address/${nft.address.toString()}?cluster=devnet`)
+      setMintedNft(nft.address)
     } catch (error) {
       console.error('Minting error:', error)
       setStatus('Minting failed: ' + error.message)
+      throw error
     }
   }
 
@@ -150,6 +171,21 @@ const ProjectForm = () => {
   return (
     <Form>
       <FileInput onFileChange={handleFileChange} />
+
+      <div className="mt-3">
+        <select
+          className="w-full p-2 border rounded"
+          onChange={(e) => setSelectedCollection(collections.find((c) => c.address === e.target.value))}
+          value={selectedCollection?.address || ''}
+        >
+          <option value="">Select a Collection (Optional)</option>
+          {collections.map((collection) => (
+            <option key={collection.address} value={collection.address}>
+              {collection.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <Input
         className="mt-3"

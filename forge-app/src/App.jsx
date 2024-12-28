@@ -10,8 +10,6 @@ import { Select, SelectItem } from '@nextui-org/react'
 import ProjectForm from './Components/Items/ProjectForm'
 import { Buffer } from 'buffer/'
 import CollectionForm from './Components/Items/CollectionForm'
-import CollectionsWallet from './Components/Items/CollectionsWallet'
-import SelectNft from './Components/Items/SelectNft'
 
 function App() {
   const [range, setRange] = useState(100)
@@ -66,8 +64,6 @@ function App() {
               <ProjectForm />
             </div>
           </div>
-          <CollectionsWallet onCollectionSelect={setSelectedCollection} />
-          <SelectNft selectedCollection={selectedCollection} />
         </div>
       </WalletContextProvider>
     </>
