@@ -3,7 +3,7 @@ import { Button, Input, Form } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Metaplex, keypairIdentity, walletAdapterIdentity } from '@metaplex-foundation/js'
 import { clusterApiUrl, Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
-import { uploadFile } from '../Tools/ApiProvider'
+import DatabaseProvider from '../../Database/DatabaseProvider'
 import FileInput from './FileInput'
 
 const ProjectForm = () => {
@@ -129,7 +129,7 @@ const ProjectForm = () => {
       setStatus('Uploading image to IPFS...')
 
       // Upload the image to Pinata
-      const imageUri = await uploadFile(file)
+      const imageUri = await DatabaseProvider.uploadToPinata(file)
 
       setStatus('Uploading metadata to IPFS...')
       const metadataObj = {
@@ -151,7 +151,7 @@ const ProjectForm = () => {
 
       const metadataBlob = new Blob([JSON.stringify(metadataObj)], { type: 'application/json' })
       const metadataFile = new File([metadataBlob], 'metadata.json')
-      const metadataUri = await uploadFile(metadataFile)
+      const metadataUri = await DatabaseProvider.uploadToPinata(metadataFile)
 
       setStatus('Creating and Minting NFT...')
 

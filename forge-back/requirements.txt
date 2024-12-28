@@ -1,3 +1,9 @@
 fastapi
 uvicorn
 python-dotenv
+flask
+flask-cors
+openai
+requests
+pymongo
+python-multipart

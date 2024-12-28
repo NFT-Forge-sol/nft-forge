@@ -1,0 +1,65 @@
+ASSETS REQUIRED :[
+    "0.png",
+    "0.json",
+    "1.png",
+    "1.json",
+    "2.png",
+    "2.json",
+    "3.png",
+    "3.json",
+    "4.png",
+    "4.json",
+    ...
+]
+
+interface CandyMachineConfig {
+    price: number;              // Price per NFT in SOL
+    itemsAvailable: number;     // Total number of NFTs available to mint
+    symbol: string;             // Symbol for the NFTs (like "MYNFT")
+    sellerFeeBasisPoints: number; // Royalty percentage (250 = 2.5%)
+    maxEditionSupply: number;   // Maximum number of editions per NFT
+    isMutable: boolean;         // Whether NFTs can be updated after mint
+    creators: [{                 // Royalty recipients
+      address: PublicKey;
+      share: number;           // Percentage share of royalties
+    }];
+    goLiveDate: Date;          // When minting can begin
+  }
+
+  // CONTROL MINTING
+  guards: {
+    botTax: { lamports: 0.01 * LAMPORTS_PER_SOL },
+    solPayment: { amount: 1 * LAMPORTS_PER_SOL },
+    startDate: { date: new Date() },
+    tokenGate: { amount: 1, mint: tokenMint },
+    // ... many more guard types available
+  }
+
+  // HIDDEN SETTINGS -> HIDING THE NFT FROM THE PUBLIC
+  hiddenSettings: {
+    name: "???",
+    uri: "placeholder-uri",
+    hash: "44kiGWWsSgdqPMvmqYgTS78Mx2BKCWzd"
+  }
+
+{
+    "name": "NFT #0",
+    "symbol": "MYNFT",
+    "description": "Description of NFT #0",
+    "image": "0.png",
+    "attributes": [
+      {
+        "trait_type": "Background",
+        "value": "Blue"
+      }
+      // ... more attributes
+    ],
+    "properties": {
+      "files": [
+        {
+          "uri": "0.png",
+          "type": "image/png"
+        }
+      ]
+    }
+  }

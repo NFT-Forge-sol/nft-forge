@@ -4,7 +4,7 @@ import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Button, Input, Form } from '@nextui-org/react'
 import FileInput from './FileInput'
-import { uploadFile } from '../Tools/ApiProvider'
+import DatabaseProvider from '../../Database/DatabaseProvider'
 
 const CollectionForm = () => {
   const [collectionName, setCollectionName] = useState('')
@@ -46,10 +46,10 @@ const CollectionForm = () => {
       setError('')
       console.log('Starting collection creation process...')
 
-      const imageUri = await uploadFile(file)
+      const imageUri = await DatabaseProvider.uploadToPinata(file)
       console.log('Image uploaded:', imageUri)
 
-      const metadataUri = await uploadFile(
+      const metadataUri = await DatabaseProvider.uploadToPinata(
         new Blob(
           [
             JSON.stringify({
