@@ -1,0 +1,8 @@
+{
+  "name": "My First NFT #2",
+  "description": "This is my first NFT ever!",
+  "attributes": [
+    { "trait_type": "Edition", "value": "Second" },
+    { "trait_type": "Awesomeness", "value": "50%" }
+  ]
+}

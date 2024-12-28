@@ -4,7 +4,7 @@ import Navbar from './Components/Items/Navbar'
 import Home from './Components/Pages/Home'
 import NFT from './Components/Pages/NFT'
 import Marketplace from './Components/Pages/Marketplace'
-
+import Candymachine from './Components/Pages/Candymachine'
 function App() {
   return (
     <WalletContextProvider>
@@ -16,6 +16,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/nft" element={<NFT />} />
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/mint" element={<Candymachine />} />
             </Routes>
           </div>
         </div>

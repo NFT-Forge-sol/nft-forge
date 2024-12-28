@@ -28,6 +28,7 @@ export default function Home() {
       </div>
 
       <div className="w-[100%]">
+        {/*
         <div className="pb-3">
           <input type="range" min={100} max={1000} value={range} step={100} onChange={handleRangeChange} />
           <label>Number of NFTs: </label>
@@ -48,7 +49,7 @@ export default function Home() {
             <SelectItem key={1}>Fade</SelectItem>
             <SelectItem key={2}>City</SelectItem>
           </Select>
-        </div>
+        </div> */}
 
         <div className="flex">
           <div className="w-[100%]">

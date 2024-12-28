@@ -20,6 +20,11 @@ export default function AppNavbar() {
           </Link>
         </NavbarItem>
         <NavbarItem>
+          <Link href="/mint" className="text-white">
+            Mint
+          </Link>
+        </NavbarItem>
+        <NavbarItem>
           <Link href="/marketplace" className="text-white">
             Marketplace
           </Link>

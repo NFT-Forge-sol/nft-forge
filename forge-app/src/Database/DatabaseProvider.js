@@ -132,6 +132,30 @@ class DatabaseProvider {
       },
     }
   }
+
+  async setCollectionNFT(candyMachineId, collectionUri) {
+    try {
+      const response = await axios.post(`${API_URL}/api/candy-machines/${candyMachineId}/collection`, {
+        collectionUri,
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error setting collection NFT:', error)
+      throw error
+    }
+  }
+
+  async setNFTsUri(candyMachineId, nftUris) {
+    try {
+      const response = await axios.post(`${API_URL}/api/candy-machines/${candyMachineId}/nfts`, {
+        nftUris,
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error setting NFT URIs:', error)
+      throw error
+    }
+  }
 }
 
 export default new DatabaseProvider()

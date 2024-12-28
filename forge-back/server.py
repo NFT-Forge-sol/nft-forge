@@ -208,5 +208,67 @@ def list_models():
         app.logger.error(f"Error while getting models : {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/candy-machines/<candy_machine_id>/collection', methods=['POST'])
+def set_collection_nft(candy_machine_id):
+    try:
+        data = request.json
+        collection_uri = data.get('collectionUri')
+        
+        if not collection_uri:
+            return jsonify({'error': 'Collection URI is required'}), 400
+
+        # Update the candy machine document with collection URI
+        result = candy_machines.find_one_and_update(
+            {'candyMachineId': candy_machine_id},
+            {
+                '$set': {
+                    'collectionUri': collection_uri,
+                    'updatedAt': datetime.utcnow()
+                }
+            },
+            return_document=True
+        )
+        
+        if result:
+            result['_id'] = str(result['_id'])
+            return jsonify(result), 200
+        
+        return jsonify({'error': 'Candy machine not found'}), 404
+
+    except Exception as e:
+        app.logger.error(f"Error setting collection NFT: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/candy-machines/<candy_machine_id>/nfts', methods=['POST'])
+def set_nfts_uri(candy_machine_id):
+    try:
+        data = request.json
+        nft_uris = data.get('nftUris', [])
+        
+        if not nft_uris:
+            return jsonify({'error': 'NFT URIs array is required'}), 400
+
+        # Update the candy machine document with NFT URIs
+        result = candy_machines.find_one_and_update(
+            {'candyMachineId': candy_machine_id},
+            {
+                '$set': {
+                    'nftUris': nft_uris,
+                    'updatedAt': datetime.utcnow()
+                }
+            },
+            return_document=True
+        )
+        
+        if result:
+            result['_id'] = str(result['_id'])
+            return jsonify(result), 200
+            
+        return jsonify({'error': 'Candy machine not found'}), 404
+
+    except Exception as e:
+        app.logger.error(f"Error setting NFT URIs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
