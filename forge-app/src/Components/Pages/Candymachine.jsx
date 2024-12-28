@@ -36,10 +36,8 @@ export default function CandyMachine() {
       const connection = new Connection(clusterApiUrl('devnet'))
       const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet.adapter))
 
-      // Fetch all NFTs owned by the wallet
       const myNfts = await metaplex.nfts().findAllByOwner({ owner: publicKey })
 
-      // Filter for collection NFTs
       const myCollections = myNfts.filter(
         (nft) =>
           nft.collectionDetails?.version === 'V1' || // Collection NFTs
@@ -105,7 +103,6 @@ export default function CandyMachine() {
         goLiveDate: new Date(formData.goLiveDate),
       })
 
-      // Store in database
       const candyMachineData = {
         ...formData,
         candyMachineId: candyMachine.address.toString(),
@@ -116,7 +113,6 @@ export default function CandyMachine() {
       await DatabaseProvider.createCandyMachine(candyMachineData)
       setCandyMachineId(candyMachine.address.toString())
 
-      // Handle NFT files upload and update
       if (nftFiles && nftFiles.length > 0) {
         const items = []
         for (let i = 0; i < nftFiles.length; i++) {

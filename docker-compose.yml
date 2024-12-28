@@ -1,29 +1,53 @@
 version: '3.8'
 
 services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./backend:/app
+    environment:
+      - PORT=8000
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - app-network
+
+  websocket:
+    build:
+      context: ./websocket-server
+      dockerfile: Dockerfile.websocket
+    ports:
+      - '8080:8080'
+    environment:
+      - PORT=8080
+    volumes:
+      - ./websocket-server:/app
+      - /app/node_modules
+    restart: unless-stopped
+    networks:
+      - app-network
+
   frontend:
     build:
       context: ./forge-app
       dockerfile: Dockerfile.frontend
     ports:
-      - '5173:5173'
+      - '3000:3000'
     volumes:
       - ./forge-app:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=development
-      - VITE_BACKEND_URL=http://localhost:8000
+      - REACT_APP_WEBSOCKET_URL=ws://localhost:8080
+      - REACT_APP_API_URL=http://localhost:8000
     depends_on:
       - backend
+      - websocket
+    networks:
+      - app-network
 
-  backend:
-    build:
-      context: ./forge-back
-      dockerfile: Dockerfile.backend
-    ports:
-      - '8000:8000'
-    volumes:
-      - ./forge-back:/app
-    environment:
-      - PYTHONUNBUFFERED=1
-      - CORS_ORIGINS=http://localhost:5173
+networks:
+  app-network:
+    driver: bridge
