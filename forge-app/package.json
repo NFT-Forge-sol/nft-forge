@@ -27,6 +27,7 @@
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.98.0",
     "axios": "^1.7.9",
+    "colorthief": "^2.6.0",
     "framer-motion": "^11.15.0",
     "global": "^4.4.0",
     "jszip": "^3.10.1",

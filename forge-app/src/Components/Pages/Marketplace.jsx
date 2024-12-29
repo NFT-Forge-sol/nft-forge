@@ -4,34 +4,6 @@ import { connectWebSocket } from '../../Services/websocketService'
 export default function Marketplace() {
   const [candyMachines, setCandyMachines] = useState([])
   const [ws, setWs] = useState(null)
-  const [timeLeft, setTimeLeft] = useState({})
-
-  const calculateTimeLeft = (goLiveDate) => {
-    const difference = new Date(goLiveDate) - new Date()
-
-    if (difference <= 0) {
-      return null
-    }
-
-    return {
-      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-      minutes: Math.floor((difference / 1000 / 60) % 60),
-      seconds: Math.floor((difference / 1000) % 60),
-    }
-  }
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const newTimeLeft = {}
-      candyMachines.forEach((machine) => {
-        newTimeLeft[machine.candyMachineId] = calculateTimeLeft(machine.goLiveDate)
-      })
-      setTimeLeft(newTimeLeft)
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [candyMachines])
 
   useEffect(() => {
     const websocket = connectWebSocket()
@@ -92,27 +64,12 @@ export default function Marketplace() {
             </div>
 
             <div className="mt-4">
-              {timeLeft[machine.candyMachineId] ? (
-                <div className="text-center mb-2">
-                  <p className="text-sm text-gray-600">Time until launch:</p>
-                  <p className="font-medium">
-                    {timeLeft[machine.candyMachineId].days}d {timeLeft[machine.candyMachineId].hours}h{' '}
-                    {timeLeft[machine.candyMachineId].minutes}m {timeLeft[machine.candyMachineId].seconds}s
-                  </p>
-                </div>
-              ) : null}
-
-              <button
-                className={`w-full py-2 px-4 rounded-lg ${
-                  timeLeft[machine.candyMachineId] ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-                } text-white font-semibold transition-colors`}
-                disabled={!!timeLeft[machine.candyMachineId]}
-                onClick={() => {
-                  /* Add mint function here */
-                }}
+              <a
+                href={`/collection/${machine.candyMachineId}`}
+                className="block w-full py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-center transition-colors"
               >
-                {timeLeft[machine.candyMachineId] ? 'Not Live Yet' : 'Mint NFT'}
-              </button>
+                See Collection
+              </a>
             </div>
           </div>
         ))}

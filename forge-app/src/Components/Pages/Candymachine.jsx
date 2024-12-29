@@ -3,8 +3,8 @@ import { Input, Button, Switch, Card, Spinner, Select, SelectItem } from '@nextu
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { create, mplCandyMachine } from '@metaplex-foundation/mpl-candy-machine'
-import { generateSigner, none, publicKey, sol, some } from '@metaplex-foundation/umi'
+import { create, mplCandyMachine, addConfigLines } from '@metaplex-foundation/mpl-candy-machine'
+import { generateSigner, none, publicKey, sol, some, transactionBuilder } from '@metaplex-foundation/umi'
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters'
 import {
   fetchAllDigitalAssetByOwner,
@@ -34,6 +34,8 @@ export default function CandyMachine() {
   const [candyMachineId, setCandyMachineId] = useState(null)
   const [processedFiles, setProcessedFiles] = useState([])
   const [ws, setWs] = useState(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isUploadingNFTs, setIsUploadingNFTs] = useState(false)
 
   useEffect(() => {
     if (walletPublicKey && wallet) {
@@ -104,10 +106,8 @@ export default function CandyMachine() {
       const contents = await zip.loadAsync(zipFile)
       const processedItems = []
 
-      // Get all file entries
       const fileEntries = Object.entries(contents.files)
 
-      // Sort files to ensure pairs are processed together
       const sortedFiles = fileEntries.sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
 
       for (let i = 0; i < sortedFiles.length; i += 2) {
@@ -119,10 +119,8 @@ export default function CandyMachine() {
           continue
         }
 
-        // Read metadata
         const metadata = JSON.parse(await jsonFile.async('text'))
 
-        // Convert image to blob
         const imageBlob = await imageFile.async('blob')
         const imageFile2 = new File([imageBlob], imageFile.name, { type: 'image/png' })
 
@@ -132,6 +130,8 @@ export default function CandyMachine() {
         })
       }
 
+      console.log('Processed files:', processedItems)
+
       setProcessedFiles(processedItems)
       setNftFiles(processedItems)
     } catch (error) {
@@ -140,11 +140,74 @@ export default function CandyMachine() {
     }
   }
 
+  const uploadNFTsToDatabase = async (candyMachineId, processedFiles, umi) => {
+    try {
+      setIsUploadingNFTs(true)
+      const totalFiles = processedFiles.length
+      const nftUris = []
+      const configLines = []
+
+      for (let i = 0; i < processedFiles.length; i++) {
+        const { metadata, image } = processedFiles[i]
+
+        const imageUrl = await DatabaseProvider.uploadToPinata(image)
+
+        const updatedMetadata = {
+          ...metadata,
+          image: imageUrl,
+        }
+
+        const metadataBlob = new Blob([JSON.stringify(updatedMetadata)], { type: 'application/json' })
+        const metadataUrl = await DatabaseProvider.uploadToPinata(metadataBlob)
+
+        nftUris.push(metadataUrl)
+
+        configLines.push({
+          name: metadata.name,
+          uri: metadataUrl,
+        })
+
+        setUploadProgress(Math.round(((i + 1) / totalFiles) * 100))
+      }
+
+      const batchSize = 10
+      for (let i = 0; i < configLines.length; i += batchSize) {
+        const batch = configLines.slice(i, i + batchSize)
+
+        const tx = transactionBuilder().add(
+          addConfigLines(umi, {
+            candyMachine: publicKey(candyMachineId),
+            index: i,
+            configLines: batch,
+          })
+        )
+
+        await tx.sendAndConfirm(umi)
+
+        setUploadProgress(Math.round((Math.min(i + batchSize, configLines.length) / totalFiles) * 100))
+      }
+
+      console.log('All NFTs uploaded and added to Candy Machine successfully')
+      return nftUris
+    } catch (error) {
+      console.error('Error uploading NFTs:', error)
+      throw error
+    } finally {
+      setIsUploadingNFTs(false)
+      setUploadProgress(0)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!walletPublicKey || !wallet || !selectedCollection) {
       alert('Please connect your wallet and select a collection')
+      return
+    }
+
+    if (!processedFiles.length) {
+      alert('Please upload NFT files')
       return
     }
 
@@ -214,6 +277,8 @@ export default function CandyMachine() {
 
       console.log('Candy Machine created:', candyMachine.publicKey.toString())
 
+      await uploadNFTsToDatabase(candyMachine.publicKey.toString(), processedFiles, umi)
+
       const candyMachineData = DatabaseProvider.formatCandyMachineData({
         address: candyMachine.publicKey,
         name: metadata.name,
@@ -236,8 +301,6 @@ export default function CandyMachine() {
             type: 'CANDY_MACHINE_CREATED',
           })
         )
-      } else {
-        console.warn('WebSocket is not connected, candy machine update not broadcast')
       }
 
       setCandyMachineId(candyMachine.publicKey.toString())
@@ -338,20 +401,48 @@ export default function CandyMachine() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">NFT Files </label>
-              <Input type="file" accept=".zip" onChange={handleNFTsUpload} className="w-full" required />
+              <Input
+                type="file"
+                accept=".zip"
+                onChange={handleNFTsUpload}
+                className="w-full"
+                required
+                disabled={isUploadingNFTs}
+              />
               <p className="text-xs text-gray-400 mt-1">
                 Upload a ZIP file containing your NFT images and metadata. Format inside ZIP: 0.png, 0.json, 1.png,
                 1.json etc...
               </p>
             </div>
+
+            {/* Add upload progress indicator */}
+            {isUploadingNFTs && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Uploading NFTs...</span>
+                  <span className="text-sm">{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-primary rounded-full h-2 transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
-            <Button type="submit" color="primary" className="w-full" disabled={!publicKey || isUploading}>
-              {isUploading ? (
+            <Button
+              type="submit"
+              color="primary"
+              className="w-full"
+              disabled={!publicKey || isUploading || isUploadingNFTs}
+            >
+              {isUploading || isUploadingNFTs ? (
                 <div className="flex items-center gap-2">
                   <Spinner size="sm" />
-                  <span>Creating...</span>
+                  <span>{isUploadingNFTs ? 'Uploading NFTs...' : 'Creating...'}</span>
                 </div>
               ) : (
                 'Create Candy Machine'

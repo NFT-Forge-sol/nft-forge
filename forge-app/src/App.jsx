@@ -5,6 +5,8 @@ import Home from './Components/Pages/Home'
 import NFT from './Components/Pages/NFT'
 import Marketplace from './Components/Pages/Marketplace'
 import Candymachine from './Components/Pages/Candymachine'
+import Collection from './Components/Pages/Collection'
+
 function App() {
   return (
     <WalletContextProvider>
@@ -17,6 +19,7 @@ function App() {
               <Route path="/nft" element={<NFT />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/mint" element={<Candymachine />} />
+              <Route path="/collection/:id" element={<Collection />} />
             </Routes>
           </div>
         </div>
