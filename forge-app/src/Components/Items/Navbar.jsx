@@ -5,7 +5,7 @@ export default function AppNavbar() {
   return (
     <Navbar isBordered className="bg-black/30 backdrop-blur-md">
       <NavbarBrand>
-        <p className="font-bold text-inherit">FORGE</p>
+        <p className="font-bold text-inherit">FORGE AI</p>
       </NavbarBrand>
 
       <NavbarContent className="hidden sm:flex gap-4" justify="center">

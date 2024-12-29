@@ -69,14 +69,7 @@ const ProjectForm = () => {
   const mintProgrammableNft = async (metadataUri, name, sellerFee, symbol, creators) => {
     setStatus('Connecting to Solana devnet...')
     const SOLANA_CONNECTION = new Connection(clusterApiUrl('devnet'))
-    const METAPLEX = Metaplex.make(SOLANA_CONNECTION).use(
-      walletAdapterIdentity({
-        publicKey: publicKey,
-        signTransaction: wallet.adapter.signTransaction.bind(wallet.adapter),
-        signAllTransactions: wallet.adapter.signAllTransactions.bind(wallet.adapter),
-        signMessage: wallet.adapter.signMessage?.bind(wallet.adapter),
-      })
-    )
+    const METAPLEX = Metaplex.make(SOLANA_CONNECTION).use(walletAdapterIdentity(wallet.adapter))
 
     try {
       const nftSettings = {
@@ -88,6 +81,8 @@ const ProjectForm = () => {
         isMutable: true,
         isCollection: false,
       }
+
+      console.log(selectedCollection)
 
       if (selectedCollection) {
         nftSettings.collection = new PublicKey(selectedCollection.mintAddress)

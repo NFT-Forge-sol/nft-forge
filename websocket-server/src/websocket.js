@@ -1,15 +1,31 @@
 const WebSocket = require('ws')
+const { initStorage, getAllCandyMachines, saveCandyMachine } = require('./storage')
 
-function setupWebSocketServer(server) {
+async function setupWebSocketServer(server) {
+  // Initialize storage
+  await initStorage()
+
   const wss = new WebSocket.Server({ server })
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', async (ws) => {
     console.log('New client connected')
 
-    ws.on('message', (message) => {
+    const existingCandyMachines = await getAllCandyMachines()
+    ws.send(
+      JSON.stringify({
+        type: 'initCandyMachines',
+        candyMachines: existingCandyMachines,
+      })
+    )
+
+    ws.on('message', async (message) => {
       try {
         const parsedMessage = JSON.parse(message)
         console.log('Received:', parsedMessage)
+
+        if (parsedMessage.type === 'newCandyMachine') {
+          await saveCandyMachine(parsedMessage.candyMachine)
+        }
 
         wss.clients.forEach((client) => {
           if (client.readyState === WebSocket.OPEN) {
@@ -24,8 +40,6 @@ function setupWebSocketServer(server) {
     ws.on('close', () => {
       console.log('Client disconnected')
     })
-
-    ws.send(JSON.stringify({ type: 'connection', status: 'connected' }))
   })
 
   return wss

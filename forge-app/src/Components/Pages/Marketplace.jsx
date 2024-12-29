@@ -8,7 +8,9 @@ export default function Marketplace() {
     websocketService.connect()
 
     const unsubscribe = websocketService.subscribe((data) => {
-      if (data.type === 'newCandyMachine') {
+      if (data.type === 'initCandyMachines') {
+        setCandyMachines(data.candyMachines)
+      } else if (data.type === 'newCandyMachine') {
         setCandyMachines((prev) => {
           const exists = prev.some((machine) => machine.id === data.candyMachine.id)
           if (!exists) {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js'
-import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js'
+import { clusterApiUrl, Connection, PublicKey, Transaction } from '@solana/web3.js'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { Button, Input, Form } from '@nextui-org/react'
 import FileInput from './FileInput'
@@ -65,12 +65,12 @@ const CollectionForm = () => {
       console.log('Metadata uploaded:', metadataUri)
 
       const connection = new Connection(clusterApiUrl('devnet'))
-      const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet.adapter))
+      const METAPLEX = Metaplex.make(connection).use(walletAdapterIdentity(wallet.adapter))
 
       const walletPublicKey = new PublicKey(wallet.adapter.publicKey.toBase58())
 
       console.log('Creating collection NFT...')
-      const { nft: collectionNft } = await metaplex.nfts().create({
+      const { nft: collectionNft } = await METAPLEX.nfts().create({
         uri: metadataUri,
         name: collectionName,
         symbol: collectionSymbol,
@@ -80,23 +80,52 @@ const CollectionForm = () => {
           {
             address: walletPublicKey,
             share: 100,
-            verified: false,
+            verified: true,
           },
         ],
-        collection: null,
-        uses: null,
       })
 
       console.log('Collection NFT created:', collectionNft.address.toBase58())
 
-      console.log('Updating collection authority...')
-      await metaplex.nfts().update({
+      /*console.log('Updating collection authority...')
+      const updateInstructions = METAPLEX.nfts().builders().update({
         nftOrSft: collectionNft,
         newAuthority: walletPublicKey,
         newUpdateAuthority: walletPublicKey,
       })
 
-      const verifiedNft = await metaplex.nfts().findByMint({ mintAddress: collectionNft.address })
+      console.log('Approving collection authority...')
+      const approveInstructions = METAPLEX.nfts().builders().approveCollectionAuthority({
+        mintAddress: collectionNft.address,
+        collectionAuthority: walletPublicKey,
+      })
+
+      console.log('Verifying collection...')
+      const verifyInstructions = METAPLEX.nfts().builders().verifyCollection({
+        mintAddress: collectionNft.address,
+        collectionAuthority: walletPublicKey,
+        isSizedCollection: true,
+        collectionMintAddress: collectionNft.address,
+      })
+
+      console.log('Sending transaction...')
+      const transaction = new Transaction()
+      transaction.add(...updateInstructions.getInstructions())
+      transaction.add(...approveInstructions.getInstructions())
+
+      const latestBlockhash = await METAPLEX.connection.getLatestBlockhash()
+      transaction.recentBlockhash = latestBlockhash.blockhash
+      transaction.feePayer = walletPublicKey
+
+      console.log('Signing transaction...')
+      const signature = await wallet.adapter.sendTransaction(transaction, METAPLEX.connection)
+      await METAPLEX.connection.confirmTransaction({
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      })*/
+
+      const verifiedNft = await METAPLEX.nfts().findByMint({ mintAddress: collectionNft.address })
       console.log('Collection verified:', verifiedNft.address.toBase58())
       console.log('Collection authority:', verifiedNft.updateAuthorityAddress.toBase58())
 

@@ -9,10 +9,8 @@ app.use(express.json())
 
 const server = http.createServer(app)
 
-// Setup WebSocket
 const wss = setupWebSocketServer(server)
 
-// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy' })
 })

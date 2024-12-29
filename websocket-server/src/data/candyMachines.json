@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1735397596804,
+    "name": "Candy Machine 290",
+    "price": "3.97",
+    "supply": 25,
+    "minted": 0,
+    "image": "https://picsum.photos/200/200?random=1735397596804"
+  },
+  {
+    "id": 1735397603437,
+    "name": "Candy Machine 518",
+    "price": "9.42",
+    "supply": 50,
+    "minted": 0,
+    "image": "https://picsum.photos/200/200?random=1735397603437"
+  },
+  {
+    "id": 1735397620424,
+    "name": "Candy Machine 579",
+    "price": "6.63",
+    "supply": 76,
+    "minted": 0,
+    "image": "https://picsum.photos/200/200?random=1735397620424"
+  },
+  {
+    "id": 1735397621461,
+    "name": "Candy Machine 212",
+    "price": "6.19",
+    "supply": 28,
+    "minted": 0,
+    "image": "https://picsum.photos/200/200?random=1735397621461"
+  }
+]

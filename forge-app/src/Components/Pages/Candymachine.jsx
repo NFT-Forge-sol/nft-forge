@@ -1,20 +1,28 @@
 import { useState, useEffect } from 'react'
 import { Input, Button, Switch, Card, Spinner, Select, SelectItem } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { Connection, clusterApiUrl } from '@solana/web3.js'
-import { Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js'
+import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+import { create, mplCandyMachine } from '@metaplex-foundation/mpl-candy-machine'
+import { generateSigner, none, publicKey, sol, some } from '@metaplex-foundation/umi'
+import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters'
+import {
+  fetchAllDigitalAssetByOwner,
+  mplTokenMetadata,
+  TokenMetadataProgram,
+} from '@metaplex-foundation/mpl-token-metadata'
 import DatabaseProvider from '../../Database/DatabaseProvider'
+import JSZip from 'jszip'
 
 export default function CandyMachine() {
-  const { publicKey, wallet } = useWallet()
+  const { publicKey: walletPublicKey, wallet } = useWallet()
   const [formData, setFormData] = useState({
     price: 1,
     itemsAvailable: 100,
-    symbol: '',
     sellerFeeBasisPoints: 250,
     maxEditionSupply: 0,
     isMutable: true,
-    goLiveDate: new Date().toISOString().slice(0, 16),
+    goLiveDate: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
   })
 
   const [collections, setCollections] = useState([])
@@ -23,27 +31,33 @@ export default function CandyMachine() {
   const [isUploading, setIsUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [candyMachineId, setCandyMachineId] = useState(null)
+  const [processedFiles, setProcessedFiles] = useState([])
 
   useEffect(() => {
-    if (publicKey && wallet) {
+    if (walletPublicKey && wallet) {
       fetchCollections()
     }
-  }, [publicKey, wallet])
+  }, [walletPublicKey, wallet])
 
   const fetchCollections = async () => {
     try {
       setIsLoading(true)
-      const connection = new Connection(clusterApiUrl('devnet'))
-      const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet.adapter))
+      const umi = createUmi(clusterApiUrl('devnet'))
+        .use(walletAdapterIdentity(wallet.adapter))
+        .use(mplCandyMachine())
+        .use(mplTokenMetadata())
 
-      const myNfts = await metaplex.nfts().findAllByOwner({ owner: publicKey })
+      const myNfts = await fetchAllDigitalAssetByOwner(umi, publicKey(walletPublicKey))
+
+      console.log(myNfts)
 
       const myCollections = myNfts.filter(
         (nft) =>
-          nft.collectionDetails?.version === 'V1' || // Collection NFTs
-          nft.collectionDetails?.version === 'V2'
+          nft.metadata.collectionDetails?.value?.__kind === 'V1' ||
+          nft.metadata.collectionDetails?.value?.__kind === 'V2'
       )
 
+      console.log('Found collections:', myCollections)
       setCollections(myCollections)
     } catch (error) {
       console.error('Error fetching collections:', error)
@@ -66,13 +80,57 @@ export default function CandyMachine() {
   }
 
   const handleNFTsUpload = async (e) => {
-    const files = e.target.files
-    setNftFiles(files)
+    try {
+      const zipFile = e.target.files[0]
+      if (!zipFile || !zipFile.name.endsWith('.zip')) {
+        alert('Please upload a ZIP file')
+        return
+      }
+
+      const zip = new JSZip()
+      const contents = await zip.loadAsync(zipFile)
+      const processedItems = []
+
+      // Get all file entries
+      const fileEntries = Object.entries(contents.files)
+
+      // Sort files to ensure pairs are processed together
+      const sortedFiles = fileEntries.sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+
+      for (let i = 0; i < sortedFiles.length; i += 2) {
+        const jsonFile = sortedFiles[i][1]
+        const imageFile = sortedFiles[i + 1][1]
+
+        if (!jsonFile.name.endsWith('.json') || !imageFile.name.endsWith('.png')) {
+          console.error('Invalid file pair:', jsonFile.name, imageFile.name)
+          continue
+        }
+
+        // Read metadata
+        const metadata = JSON.parse(await jsonFile.async('text'))
+
+        // Convert image to blob
+        const imageBlob = await imageFile.async('blob')
+        const imageFile2 = new File([imageBlob], imageFile.name, { type: 'image/png' })
+
+        processedItems.push({
+          metadata,
+          image: imageFile2,
+        })
+      }
+
+      setProcessedFiles(processedItems)
+      setNftFiles(processedItems)
+    } catch (error) {
+      console.error('Error processing ZIP file:', error)
+      alert('Error processing ZIP file. Please check the console for details.')
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!publicKey || !wallet || !selectedCollection) {
+
+    if (!walletPublicKey || !wallet || !selectedCollection) {
       alert('Please connect your wallet and select a collection')
       return
     }
@@ -80,60 +138,69 @@ export default function CandyMachine() {
     try {
       setIsUploading(true)
 
-      const connection = new Connection(clusterApiUrl('devnet'))
-      const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet.adapter))
+      const umi = createUmi(clusterApiUrl('devnet')).use(walletAdapterIdentity(wallet.adapter)).use(mplCandyMachine())
 
-      const { candyMachine } = await metaplex.candyMachines().create({
-        itemsAvailable: formData.itemsAvailable,
-        sellerFeeBasisPoints: formData.sellerFeeBasisPoints,
-        price: formData.price,
-        symbol: formData.symbol,
-        maxEditionSupply: formData.maxEditionSupply,
-        isMutable: formData.isMutable,
-        creators: [
-          {
-            address: publicKey,
-            share: 100,
-          },
-        ],
-        collection: {
-          address: selectedCollection.address,
-          updateAuthority: publicKey,
-        },
-        goLiveDate: new Date(formData.goLiveDate),
-      })
+      console.log('Creating candy machine...')
 
-      const candyMachineData = {
-        ...formData,
-        candyMachineId: candyMachine.address.toString(),
-        creatorAddress: publicKey.toString(),
-        collectionAddress: selectedCollection.address.toString(),
-      }
+      // Create the Candy Machine
+      const candyMachine = generateSigner(umi)
 
-      await DatabaseProvider.createCandyMachine(candyMachineData)
-      setCandyMachineId(candyMachine.address.toString())
-
-      if (nftFiles && nftFiles.length > 0) {
-        const items = []
-        for (let i = 0; i < nftFiles.length; i++) {
-          const uri = await DatabaseProvider.uploadToPinata(nftFiles[i])
-          items.push({
-            name: `${selectedCollection.name} #${i + 1}`,
-            uri: uri,
-            sellerFeeBasisPoints: formData.sellerFeeBasisPoints,
-          })
-        }
-
-        await metaplex.candyMachines().update({
+      await (
+        await create(umi, {
           candyMachine,
-          items: items,
+          collectionMint: publicKey(selectedCollection.mint.publicKey),
+          collectionUpdateAuthority: publicKey(wallet.adapter.publicKey),
+          tokenStandard: 0,
+          sellerFeeBasisPoints: { basisPoints: formData.sellerFeeBasisPoints },
+          itemsAvailable: BigInt(formData.itemsAvailable),
+          creators: [
+            {
+              address: publicKey(wallet.adapter.publicKey),
+              percentageShare: formData.sellerFeeBasisPoints,
+              verified: true,
+            },
+          ],
+          configLineSettings: some({
+            prefixName: '',
+            nameLength: 32,
+            prefixUri: '',
+            uriLength: 200,
+            isSequential: false,
+          }),
+          guards: {
+            botTax: none(),
+            solPayment: some({
+              lamports: sol(formData.price),
+              destination: publicKey(wallet.adapter.publicKey),
+            }),
+            startDate: some({
+              date: BigInt(new Date(formData.goLiveDate).getTime() / 1000),
+            }),
+            endDate: none(),
+            mintLimit: none(),
+            nftBurn: none(),
+            nftGate: none(),
+            nftPayment: none(),
+            redeemedAmount: none(),
+            tokenBurn: none(),
+            tokenGate: none(),
+            tokenPayment: none(),
+            freezeSolPayment: none(),
+            freezeTokenPayment: none(),
+            programGate: none(),
+            allocation: none(),
+            allowList: none(),
+          },
         })
-      }
+      ).sendAndConfirm(umi)
+
+      console.log('Candy Machine created:', candyMachine.publicKey.toString())
+      setCandyMachineId(candyMachine.publicKey.toString())
 
       alert('Candy Machine created successfully!')
     } catch (error) {
       console.error('Error:', error)
-      alert('Failed to create Candy Machine')
+      alert(`Failed to create Candy Machine: ${error.message}`)
     } finally {
       setIsUploading(false)
     }
@@ -151,14 +218,16 @@ export default function CandyMachine() {
               placeholder={isLoading ? 'Loading collections...' : 'Select a collection'}
               className="w-full"
               isDisabled={isLoading || collections.length === 0}
+              required
+              selectedKeys={selectedCollection ? [selectedCollection.mint.publicKey.toString()] : []}
               onChange={(e) => {
-                const collection = collections.find((c) => c.address.toString() === e.target.value)
+                const collection = collections.find((c) => c.mint.publicKey.toString() === e.target.value)
                 setSelectedCollection(collection)
               }}
             >
               {collections.map((collection) => (
-                <SelectItem key={collection.address.toString()} value={collection.address.toString()}>
-                  {collection.name}
+                <SelectItem key={collection.mint.publicKey.toString()} value={collection.mint.publicKey.toString()}>
+                  {collection.metadata.name}
                 </SelectItem>
               ))}
             </Select>
@@ -184,19 +253,8 @@ export default function CandyMachine() {
               min={1}
               required
               className="w-full"
+              description="Total number of unique NFTs in your collection"
             />
-
-            <Input
-              type="text"
-              label="Symbol"
-              name="symbol"
-              value={formData.symbol}
-              onChange={handleInputChange}
-              placeholder="MYNFT"
-              required
-              className="w-full"
-            />
-
             <Input
               type="number"
               label="Seller Fee (basis points)"
@@ -219,6 +277,7 @@ export default function CandyMachine() {
               min={0}
               required
               className="w-full"
+              description="Number of copies allowed per NFT (0 for unique NFTs)"
             />
 
             <Input
