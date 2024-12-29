@@ -1,52 +1,32 @@
-class WebSocketService {
-  constructor() {
-    this.ws = null
-    this.subscribers = new Set()
+const WS_URL = 'ws://localhost:8080/ws'
+
+export const connectWebSocket = () => {
+  const ws = new WebSocket(WS_URL)
+
+  ws.onopen = () => {
+    console.log('WebSocket Connected')
   }
 
-  connect() {
-    const wsUrl = 'ws://localhost:8080'
-    this.ws = new WebSocket(wsUrl)
+  ws.onclose = (event) => {
+    console.log('WebSocket Disconnected:', event.reason)
+    setTimeout(() => {
+      console.log('Attempting to reconnect...')
+      connectWebSocket()
+    }, 1000)
+  }
 
-    this.ws.onopen = () => {
-      console.log('Connected to WebSocket')
-    }
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error)
+  }
 
-    this.ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        this.notifySubscribers(data)
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error)
-      }
-    }
-
-    this.ws.onclose = () => {
-      console.log('Disconnected from WebSocket')
-      setTimeout(() => this.connect(), 5000)
-    }
-
-    this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+      console.log('Received:', data)
+    } catch (error) {
+      console.error('Error parsing message:', error)
     }
   }
 
-  subscribe(callback) {
-    this.subscribers.add(callback)
-    return () => this.subscribers.delete(callback)
-  }
-
-  notifySubscribers(data) {
-    this.subscribers.forEach((callback) => callback(data))
-  }
-
-  disconnect() {
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
-    }
-  }
+  return ws
 }
-
-const websocketService = new WebSocketService()
-export default websocketService

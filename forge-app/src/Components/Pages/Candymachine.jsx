@@ -13,6 +13,7 @@ import {
 } from '@metaplex-foundation/mpl-token-metadata'
 import DatabaseProvider from '../../Database/DatabaseProvider'
 import JSZip from 'jszip'
+import { connectWebSocket } from '../../Services/websocketService'
 
 export default function CandyMachine() {
   const { publicKey: walletPublicKey, wallet } = useWallet()
@@ -32,12 +33,24 @@ export default function CandyMachine() {
   const [isLoading, setIsLoading] = useState(true)
   const [candyMachineId, setCandyMachineId] = useState(null)
   const [processedFiles, setProcessedFiles] = useState([])
+  const [ws, setWs] = useState(null)
 
   useEffect(() => {
     if (walletPublicKey && wallet) {
       fetchCollections()
     }
   }, [walletPublicKey, wallet])
+
+  useEffect(() => {
+    const websocket = connectWebSocket()
+    setWs(websocket)
+
+    return () => {
+      if (websocket) {
+        websocket.close()
+      }
+    }
+  }, [])
 
   const fetchCollections = async () => {
     try {
@@ -138,11 +151,16 @@ export default function CandyMachine() {
     try {
       setIsUploading(true)
 
+      const metadataResponse = await fetch(selectedCollection.metadata.uri)
+      if (!metadataResponse.ok) {
+        throw new Error('Failed to fetch metadata from URI')
+      }
+      const metadata = await metadataResponse.json()
+
       const umi = createUmi(clusterApiUrl('devnet')).use(walletAdapterIdentity(wallet.adapter)).use(mplCandyMachine())
 
       console.log('Creating candy machine...')
 
-      // Create the Candy Machine
       const candyMachine = generateSigner(umi)
 
       await (
@@ -195,8 +213,34 @@ export default function CandyMachine() {
       ).sendAndConfirm(umi)
 
       console.log('Candy Machine created:', candyMachine.publicKey.toString())
-      setCandyMachineId(candyMachine.publicKey.toString())
 
+      const candyMachineData = DatabaseProvider.formatCandyMachineData({
+        address: candyMachine.publicKey,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        price: formData.price,
+        itemsAvailable: formData.itemsAvailable,
+        creatorAddress: wallet.adapter.publicKey,
+        goLiveDate: formData.goLiveDate,
+        description: metadata.description,
+        image: metadata.image,
+        externalUrl: metadata.external_url,
+        attributes: metadata.attributes,
+      })
+
+      await DatabaseProvider.createCandyMachine(candyMachineData)
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            type: 'CANDY_MACHINE_CREATED',
+          })
+        )
+      } else {
+        console.warn('WebSocket is not connected, candy machine update not broadcast')
+      }
+
+      setCandyMachineId(candyMachine.publicKey.toString())
       alert('Candy Machine created successfully!')
     } catch (error) {
       console.error('Error:', error)

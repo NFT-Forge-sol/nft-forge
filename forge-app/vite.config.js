@@ -1,35 +1,31 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
-import nodePolyfills from 'rollup-plugin-polyfill-node'
-import path from 'path'
+import inject from '@rollup/plugin-inject'
 
 export default defineConfig({
   plugins: [
     react(),
-    NodeGlobalsPolyfillPlugin({
-      buffer: true,
-      process: true,
-    }),
-    nodePolyfills({
-      include: ['stream'],
-    }),
+    {
+      ...inject({
+        process: 'process/browser',
+        Buffer: ['buffer', 'Buffer'],
+      }),
+      enforce: 'post',
+    },
   ],
   define: {
     global: 'globalThis',
-    'process.env': process.env ?? {},
+    'process.env': {},
   },
   resolve: {
     alias: {
-      process: 'process/browser',
       stream: 'stream-browserify',
+      buffer: 'buffer',
     },
   },
   optimizeDeps: {
-    include: ['buffer', 'process', 'stream-browserify'],
     esbuildOptions: {
-      target: 'esnext',
-      plugins: [NodeGlobalsPolyfillPlugin({ buffer: true })],
       define: {
         global: 'globalThis',
       },

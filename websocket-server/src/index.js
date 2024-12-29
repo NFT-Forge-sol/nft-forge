@@ -1,21 +1,27 @@
-const express = require('express')
-const http = require('http')
-const cors = require('cors')
-const setupWebSocketServer = require('./websocket')
+import express from 'express'
+import http from 'http'
+import cors from 'cors'
+import { setupWebSocketServer } from './websocket.js'
 
 const app = express()
-app.use(cors())
-app.use(express.json())
+
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  })
+)
 
 const server = http.createServer(app)
 
-const wss = setupWebSocketServer(server)
-
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy' })
+  res.json({ status: 'ok' })
 })
+
+setupWebSocketServer(server)
 
 const PORT = process.env.PORT || 8080
 server.listen(PORT, () => {
-  console.log(`WebSocket server is running on port ${PORT}`)
+  console.log(`Server is running on port ${PORT}`)
 })

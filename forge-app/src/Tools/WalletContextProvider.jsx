@@ -5,14 +5,29 @@ import { clusterApiUrl } from '@solana/web3.js'
 import PropTypes from 'prop-types'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+  CoinbaseWalletAdapter,
+  TorusWalletAdapter,
+} from '@solana/wallet-adapter-wallets'
+
 const WalletContextProvider = ({ children }) => {
   const endpoint = clusterApiUrl('devnet')
 
-  const wallets = useMemo(() => [], [])
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      new CoinbaseWalletAdapter(),
+      new TorusWalletAdapter(),
+    ],
+    []
+  )
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets}>
+      <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

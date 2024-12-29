@@ -7,11 +7,15 @@
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.18.2",
-    "ws": "^8.16.0",
-    "cors": "^2.8.5"
+    "mongodb": "^6.12.0",
+    "mongoose": "^8.9.2",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
-  }
+  },
+  "type": "module"
 }
