@@ -3,9 +3,11 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 
 export default function AppNavbar() {
   return (
-    <Navbar isBordered className="bg-black/30 backdrop-blur-md">
+    <Navbar className="bg-forge-400/50 backdrop-blur-md border-b border-primary-500/20" maxWidth="full">
       <NavbarBrand>
-        <p className="font-bold text-inherit">FORGE AI</p>
+        <div className="flex items-center gap-2">
+          <p className="font-bold text-inherit">FORGE AI</p>
+        </div>
       </NavbarBrand>
 
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
@@ -33,7 +35,7 @@ export default function AppNavbar() {
 
       <NavbarContent justify="end">
         <NavbarItem>
-          <WalletMultiButton />
+          <WalletMultiButton className="!bg-forge-400 hover:!bg-forge-300 !text-white border border-primary-500/50 hover:border-primary-500 !rounded-lg !py-2" />
         </NavbarItem>
       </NavbarContent>
     </Navbar>
