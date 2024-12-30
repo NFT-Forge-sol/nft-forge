@@ -237,7 +237,7 @@ export default function CandyMachine() {
           creators: [
             {
               address: publicKey(wallet.adapter.publicKey),
-              percentageShare: formData.sellerFeeBasisPoints,
+              percentageShare: 100,
               verified: true,
             },
           ],

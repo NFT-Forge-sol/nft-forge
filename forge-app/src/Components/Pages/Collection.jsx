@@ -4,7 +4,12 @@ import { Card, Button, Link, useDisclosure } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { mplCandyMachine, mintFromCandyMachineV2, fetchCandyMachine } from '@metaplex-foundation/mpl-candy-machine'
+import {
+  mplCandyMachine,
+  mintFromCandyMachineV2,
+  fetchCandyMachine,
+  mintV2,
+} from '@metaplex-foundation/mpl-candy-machine'
 import { setComputeUnitLimit } from '@metaplex-foundation/mpl-toolbox'
 import { none, some, transactionBuilder } from '@metaplex-foundation/umi'
 import { publicKey, generateSigner } from '@metaplex-foundation/umi'
@@ -12,6 +17,7 @@ import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-ad
 import { clusterApiUrl } from '@solana/web3.js'
 import DatabaseProvider from '../../Database/DatabaseProvider'
 import ColorThief from 'colorthief'
+import { base58 } from '@metaplex-foundation/umi/serializers'
 
 export default function Collection() {
   const { id } = useParams()
@@ -152,34 +158,36 @@ export default function Collection() {
       return
     }
 
-    if (!isLive) {
-      console.log('Collection is not live yet')
-      return
-    }
-
-    if (!candyMachineData) {
-      console.log('Candy Machine data not loaded')
-      return
-    }
-
     try {
       setIsMinting(true)
 
+      const candyMachine = await fetchCandyMachine(umi, publicKey(id))
+      console.log('Candy Machine Data:', candyMachine)
+
+      if (!candyMachine.itemsLoaded || candyMachine.itemsLoaded < candyMachine.itemsAvailable) {
+        throw new Error(
+          `Candy Machine not fully loaded. Loaded: ${candyMachine.itemsLoaded}, Available: ${candyMachine.itemsAvailable}`
+        )
+      }
+
       const nftMint = generateSigner(umi)
+      const nftOwner = umi.identity.publicKey
 
       console.log('Attempting mint with:', {
         candyMachine: id,
         nftMint: nftMint.publicKey.toString(),
+        nftOwner: nftOwner.toString(),
       })
 
-      let tx = transactionBuilder()
+      const tx = transactionBuilder()
         .add(setComputeUnitLimit(umi, { units: 800_000 }))
         .add(
-          mintFromCandyMachineV2(umi, {
+          mintV2(umi, {
             candyMachine: publicKey(id),
             nftMint,
-            collectionMint: candyMachineData.collectionMint,
-            collectionUpdateAuthority: candyMachineData.authority,
+            nftOwner,
+            collectionMint: candyMachine.collectionMint,
+            collectionUpdateAuthority: candyMachine.authority,
             tokenStandard: 0,
             mintArgs: {
               solPayment: some({ destination: publicKey(collection.creatorAddress) }),
@@ -199,22 +207,37 @@ export default function Collection() {
               allocation: none(),
               allowList: none(),
             },
+            configLineSettings: some({
+              prefixName: '',
+              nameLength: 32,
+              prefixUri: '',
+              uriLength: 200,
+              isSequential: false,
+            }),
+            configLine: some({
+              name: collection.name,
+              uri: collection.metadata.uri,
+            }),
           })
         )
 
       const result = await tx.sendAndConfirm(umi)
 
+      const serializedSignature = base58.deserialize(result.signature)[0]
       console.log('Mint successful!', {
-        signature: result.signature,
+        signature: serializedSignature,
+        explorerUrl: `https://explorer.solana.com/tx/${serializedSignature}?cluster=devnet`,
         nftMint: nftMint.publicKey.toString(),
       })
 
       await DatabaseProvider.incrementMintedCount(id)
-
       const updatedCollection = await DatabaseProvider.getCandyMachineById(id)
       setCollection(updatedCollection)
     } catch (error) {
       console.error('Error minting:', error)
+      if (error.logs) {
+        console.error('Transaction logs:', error.logs)
+      }
     } finally {
       setIsMinting(false)
     }
@@ -342,7 +365,7 @@ export default function Collection() {
                           size="lg"
                           className="w-full"
                           radius="lg"
-                          onClick={handleMint}
+                          onPress={handleMint}
                           isLoading={isMinting}
                         >
                           {isMinting ? 'Minting...' : isLive ? 'Mint' : timeLeft ? `Starts in ${timeLeft}` : 'Not Live'}
