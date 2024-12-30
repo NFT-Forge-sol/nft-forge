@@ -4,12 +4,7 @@ import { Card, Button, Link, useDisclosure } from '@nextui-org/react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import {
-  mplCandyMachine,
-  mintFromCandyMachineV2,
-  fetchCandyMachine,
-  mintV2,
-} from '@metaplex-foundation/mpl-candy-machine'
+import { mplCandyMachine, fetchCandyMachine, mintV2, deleteCandyMachine } from '@metaplex-foundation/mpl-candy-machine'
 import { setComputeUnitLimit } from '@metaplex-foundation/mpl-toolbox'
 import { none, some, transactionBuilder } from '@metaplex-foundation/umi'
 import { publicKey, generateSigner } from '@metaplex-foundation/umi'
@@ -37,8 +32,9 @@ export default function Collection() {
 
   const isLive = useMemo(() => {
     if (!collection?.goLiveDate) return false
+    if (collection?.itemsMinted >= collection?.itemsAvailable) return false
     return new Date(collection.goLiveDate).getTime() <= new Date().getTime()
-  }, [collection?.goLiveDate])
+  }, [collection?.goLiveDate, collection?.itemsMinted, collection?.itemsAvailable])
 
   useEffect(() => {
     let isMounted = true
@@ -158,6 +154,21 @@ export default function Collection() {
       return
     }
 
+    if (!isLive) {
+      console.log('Minting is not live yet')
+      return
+    }
+
+    if (collection.itemsMinted >= collection.itemsAvailable) {
+      console.log('All items have been minted')
+      return
+    }
+
+    if (isMinting) {
+      console.log('Minting is in progress')
+      return
+    }
+
     try {
       setIsMinting(true)
 
@@ -232,6 +243,25 @@ export default function Collection() {
 
       await DatabaseProvider.incrementMintedCount(id)
       const updatedCollection = await DatabaseProvider.getCandyMachineById(id)
+      if (updatedCollection.itemsMinted >= updatedCollection.itemsAvailable) {
+        console.log('All items minted, deleting candy machine...')
+
+        const deleteTx = transactionBuilder()
+          .add(setComputeUnitLimit(umi, { units: 200_000 }))
+          .add(
+            deleteCandyMachine(umi, {
+              candyMachine: publicKey(id),
+              authority: umi.identity.publicKey,
+            })
+          )
+
+        const deleteResult = await deleteTx.sendAndConfirm(umi)
+        console.log('Candy machine deleted:', {
+          signature: base58.deserialize(deleteResult.signature)[0],
+          explorerUrl: `https://explorer.solana.com/tx/${base58.deserialize(deleteResult.signature)[0]}?cluster=devnet`,
+        })
+      }
+
       setCollection(updatedCollection)
     } catch (error) {
       console.error('Error minting:', error)
@@ -333,9 +363,21 @@ export default function Collection() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span
-                              className={`inline-block w-2 h-2 rounded-full ${isLive ? 'bg-success' : 'bg-warning'}`}
+                              className={`inline-block w-2 h-2 rounded-full ${
+                                collection.itemsMinted >= collection.itemsAvailable
+                                  ? 'bg-default-400'
+                                  : isLive
+                                  ? 'bg-success'
+                                  : 'bg-warning'
+                              }`}
                             ></span>
-                            <span className="text-sm">{isLive ? 'Live' : 'Not Live'}</span>
+                            <span className="text-sm">
+                              {collection.itemsMinted >= collection.itemsAvailable
+                                ? 'Finished'
+                                : isLive
+                                ? 'Live'
+                                : 'Not Live'}
+                            </span>
                           </div>
                           <div className="mt-1">
                             <span className="text-2xl font-bold">{collection.price} SOL</span>
@@ -360,21 +402,29 @@ export default function Collection() {
 
                       {connected ? (
                         <Button
-                          disabled={!isLive || isMinting}
-                          color={isLive ? 'primary' : 'default'}
+                          disabled={!isLive || isMinting || collection.itemsMinted >= collection.itemsAvailable}
+                          color={isLive && collection.itemsMinted < collection.itemsAvailable ? 'primary' : 'default'}
                           size="lg"
                           className="w-full"
                           radius="lg"
                           onPress={handleMint}
                           isLoading={isMinting}
                         >
-                          {isMinting ? 'Minting...' : isLive ? 'Mint' : timeLeft ? `Starts in ${timeLeft}` : 'Not Live'}
+                          {isMinting
+                            ? 'Minting...'
+                            : collection.itemsMinted >= collection.itemsAvailable
+                            ? 'Sold Out'
+                            : isLive
+                            ? 'Mint'
+                            : timeLeft
+                            ? `Starts in ${timeLeft}`
+                            : 'Not Live'}
                         </Button>
                       ) : (
                         <WalletMultiButton className="w-full py-4 px-8 rounded-xl bg-primary hover:bg-primary-500 text-white text-lg font-semibold" />
                       )}
 
-                      <p className="text-center text-sm text-default-500">Limit 1 Per Wallet</p>
+                      <p className="text-center text-sm text-default-500">Limit ∞ Per Wallet</p>
                     </div>
                   </Card>
 

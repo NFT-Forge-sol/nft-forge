@@ -20,7 +20,7 @@ export default function Marketplace() {
           console.log('CANDY_MACHINES_LIST', data.payload)
           setCandyMachines(data.payload)
         } else if (data.type === 'CANDY_MACHINE_CREATED') {
-          setCandyMachines((prev) => [...prev, data.payload])
+          setCandyMachines((prev) => [data.payload, ...prev])
         } else if (data.type === 'MINTED_COUNT_UPDATED') {
           setCandyMachines((prev) =>
             prev.map((machine) => (machine.candyMachineId === data.payload.candyMachineId ? data.payload : machine))
@@ -59,7 +59,7 @@ export default function Marketplace() {
             <div className="flex justify-between text-gray-600 mb-4">
               <span>Price: {machine.price} SOL</span>
               <span>
-                Minted: {machine.mintedCount}/{machine.itemsAvailable}
+                Minted: {machine.itemsMinted}/{machine.itemsAvailable}
               </span>
             </div>
 

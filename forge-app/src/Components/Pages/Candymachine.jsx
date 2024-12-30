@@ -232,6 +232,7 @@ export default function CandyMachine() {
           collectionMint: publicKey(selectedCollection.mint.publicKey),
           collectionUpdateAuthority: publicKey(wallet.adapter.publicKey),
           tokenStandard: 0,
+          maxEditionSupply: BigInt(formData.maxEditionSupply),
           sellerFeeBasisPoints: { basisPoints: formData.sellerFeeBasisPoints },
           itemsAvailable: BigInt(formData.itemsAvailable),
           creators: [
@@ -279,12 +280,18 @@ export default function CandyMachine() {
 
       await uploadNFTsToDatabase(candyMachine.publicKey.toString(), processedFiles, umi)
 
+      let itemsAvailable = formData.itemsAvailable
+
+      if (formData.maxEditionSupply != 0) {
+        itemsAvailable = itemsAvailable * formData.maxEditionSupply
+      }
+
       const candyMachineData = DatabaseProvider.formatCandyMachineData({
         address: candyMachine.publicKey,
         name: metadata.name,
         symbol: metadata.symbol,
         price: formData.price,
-        itemsAvailable: formData.itemsAvailable,
+        itemsAvailable: itemsAvailable,
         creatorAddress: wallet.adapter.publicKey,
         goLiveDate: formData.goLiveDate,
         description: metadata.description,
