@@ -6,26 +6,26 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#FF6B00', // Your main orange
+          DEFAULT: '#FF6B00',
           50: '#FFF2E5',
           100: '#FFE5CC',
           200: '#FFCB99',
           300: '#FFB166',
           400: '#FF9733',
-          500: '#FF6B00', // Your main orange
+          500: '#FF6B00',
           600: '#CC5500',
           700: '#994000',
           800: '#662A00',
           900: '#331500',
         },
         forge: {
-          DEFAULT: '#0A0A0A', // Your main black
+          DEFAULT: '#0A0A0A',
           50: '#404040',
           100: '#333333',
           200: '#262626',
           300: '#1A1A1A',
           400: '#0D0D0D',
-          500: '#0A0A0A', // Your main black
+          500: '#0A0A0A',
           600: '#000000',
         },
       },
