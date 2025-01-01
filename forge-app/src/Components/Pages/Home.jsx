@@ -21,7 +21,7 @@ export default function Home() {
   }
 
   return (
-    <div>
+    <div className="p-10">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-6 ">Welcome to Forge</h1>
         <p className="text-xl">Create, Mint, and Trade NFTs on Solana</p>

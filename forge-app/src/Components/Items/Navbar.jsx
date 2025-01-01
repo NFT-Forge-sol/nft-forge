@@ -11,7 +11,7 @@ import {
 } from '@nextui-org/react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, Sparkles, Image as ImageIcon, User } from 'lucide-react'
+import { ChevronDown, Image as ImageIcon, User, Wand2 } from 'lucide-react'
 import { useWallet } from '@solana/wallet-adapter-react'
 
 export default function AppNavbar() {
@@ -19,7 +19,7 @@ export default function AppNavbar() {
   const navigate = useNavigate()
   const icons = {
     chevron: <ChevronDown size={20} />,
-    wand: <Sparkles className="text-primary-500" size={24} />,
+    wand: <Wand2 className="text-primary-500" size={24} />,
     image: <ImageIcon className="text-primary-500" size={24} />,
   }
 
@@ -74,7 +74,7 @@ export default function AppNavbar() {
           >
             <DropdownItem
               key="from-scratch"
-              description="Create unique AI-generated NFTs from text descriptions"
+              description="Create unique AI-generated NFTs from text"
               startContent={icons.wand}
               as={Link}
               to="/ai/from-scratch"
