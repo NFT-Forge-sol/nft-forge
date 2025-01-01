@@ -45,6 +45,11 @@ export default function AppNavbar() {
             Home
           </Link>
         </NavbarItem>
+        <NavbarItem>
+          <Link to="/tokenomics" className="text-white hover:text-primary-500 transition-colors">
+            Tokenomics
+          </Link>
+        </NavbarItem>
         <Dropdown className="bg-forge-400/95 active:border-none active:outline-none">
           <NavbarItem>
             <DropdownTrigger>
