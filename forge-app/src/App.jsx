@@ -8,12 +8,14 @@ import Candymachine from './Components/Pages/Candymachine'
 import Collection from './Components/Pages/Collection'
 import Profile from './Components/Pages/Profile'
 import Footer from './Components/Items/Footer'
+import ScrollToTop from './Components/Utils/ScrollToTop'
 
 function App() {
   return (
     <WalletContextProvider>
       <Router>
         <div className="min-h-screen w-full bg-gradient-to-br from-black to-gray-900 text-white flex flex-col">
+          <ScrollToTop />
           <Navbar />
           <div className="w-full mx-auto flex-1">
             <Routes>

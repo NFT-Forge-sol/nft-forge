@@ -7,6 +7,7 @@ import { fetchAllDigitalAssetByOwner } from '@metaplex-foundation/mpl-token-meta
 import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters'
 import { Copy, ExternalLink } from 'lucide-react'
+import { useNavigate } from 'react-router'
 
 export default function Profile() {
   const { publicKey, wallet } = useWallet()
@@ -14,6 +15,7 @@ export default function Profile() {
   const [collections, setCollections] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [hoveredId, setHoveredId] = useState(null)
+  const navigate = useNavigate()
 
   const fetchMetadata = async (uri) => {
     try {

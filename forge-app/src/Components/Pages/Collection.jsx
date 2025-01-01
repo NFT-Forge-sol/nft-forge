@@ -298,160 +298,162 @@ export default function Collection() {
   }
 
   return (
-    <div className="min-h-screen w-full fixed inset-0 mt-16" style={backgroundStyle}>
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-xl" />
+    <div className="min-h-screen w-full relative pb-[300px] md:pb-[200px]">
+      <div className="absolute inset-0" style={backgroundStyle}>
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-xl" />
 
-      <div className="relative z-10 h-full overflow-y-auto">
-        <div className="p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row gap-8 pb-16">
-              <div className="md:w-1/2">
-                <Card className="border-none bg-transparent">
-                  <img
-                    src={collection.metadata?.image || collection.image}
-                    alt={collection.name}
-                    className="w-full h-[600px] object-cover rounded-2xl"
-                  />
-                </Card>
-              </div>
-
-              <div className="md:w-1/2">
-                <div className="space-y-6">
-                  {/* Header */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-default-500">Creator Collection</span>
-                      <Button isIconOnly size="sm" variant="light" className="text-default-500">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-4 h-4"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-                          />
-                        </svg>
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h1 className="text-4xl font-bold mb-4">{collection.name}</h1>
-                    <p className="text-default-500 text-sm mb-4">{collection.metadata?.description}</p>
-
-                    <div className="flex gap-4 text-default-500 text-sm">
-                      {collection.metadata?.external_url && (
-                        <Link
-                          href={collection.metadata.external_url}
-                          target="_blank"
-                          className="flex items-center gap-1"
-                        >
-                          <span>Website</span>
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-
-                  <Card className="bg-default-50">
-                    <div className="p-6 space-y-6">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`inline-block w-2 h-2 rounded-full ${
-                                collection.itemsMinted >= collection.itemsAvailable
-                                  ? 'bg-default-400'
-                                  : isLive
-                                  ? 'bg-success'
-                                  : 'bg-warning'
-                              }`}
-                            ></span>
-                            <span className="text-sm">
-                              {collection.itemsMinted >= collection.itemsAvailable
-                                ? 'Finished'
-                                : isLive
-                                ? 'Live'
-                                : 'Not Live'}
-                            </span>
-                          </div>
-                          <div className="mt-1">
-                            <span className="text-2xl font-bold">{collection.price} SOL</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm text-default-500">Minted</div>
-                          <div className="text-lg font-semibold">
-                            {collection.itemsMinted} / {collection.itemsAvailable}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="w-full bg-default-100 rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full"
-                          style={{
-                            width: `${(collection.itemsMinted / collection.itemsAvailable) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-
-                      {connected ? (
-                        <Button
-                          disabled={!isLive || isMinting || collection.itemsMinted >= collection.itemsAvailable}
-                          color={isLive && collection.itemsMinted < collection.itemsAvailable ? 'primary' : 'default'}
-                          size="lg"
-                          className="w-full"
-                          radius="lg"
-                          onPress={handleMint}
-                          isLoading={isMinting}
-                        >
-                          {isMinting
-                            ? 'Minting...'
-                            : collection.itemsMinted >= collection.itemsAvailable
-                            ? 'Sold Out'
-                            : isLive
-                            ? 'Mint'
-                            : timeLeft
-                            ? `Starts in ${timeLeft}`
-                            : 'Not Live'}
-                        </Button>
-                      ) : (
-                        <WalletMultiButton className="w-full py-4 px-8 rounded-xl bg-primary hover:bg-primary-500 text-white text-lg font-semibold" />
-                      )}
-
-                      <p className="text-center text-sm text-default-500">Limit ∞ Per Wallet</p>
-                    </div>
+        <div className="relative z-10 h-full overflow-y-auto">
+          <div className="p-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex flex-col md:flex-row gap-8 pb-16">
+                <div className="md:w-1/2">
+                  <Card className="border-none bg-transparent">
+                    <img
+                      src={collection.metadata?.image || collection.image}
+                      alt={collection.name}
+                      className="w-full h-[600px] object-cover rounded-2xl"
+                    />
                   </Card>
+                </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Creators</h3>
+                <div className="md:w-1/2">
+                  <div className="space-y-6">
+                    {/* Header */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-default-100 rounded-full"></div>
-                        <div>
-                          <p className="font-semibold">
-                            {collection.creatorAddress.slice(0, 4)}...{collection.creatorAddress.slice(-4)}
-                          </p>
-                          <p className="text-sm text-default-500">Creator</p>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-default-500">Creator Collection</span>
+                        <Button isIconOnly size="sm" variant="light" className="text-default-500">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+                            />
+                          </svg>
+                        </Button>
                       </div>
-                      <Button isIconOnly size="sm" variant="light">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-4 h-4"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                        </svg>
-                      </Button>
+                    </div>
+
+                    <div>
+                      <h1 className="text-4xl font-bold mb-4">{collection.name}</h1>
+                      <p className="text-default-500 text-sm mb-4">{collection.metadata?.description}</p>
+
+                      <div className="flex gap-4 text-default-500 text-sm">
+                        {collection.metadata?.external_url && (
+                          <Link
+                            href={collection.metadata.external_url}
+                            target="_blank"
+                            className="flex items-center gap-1"
+                          >
+                            <span>Website</span>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+
+                    <Card className="bg-default-50">
+                      <div className="p-6 space-y-6">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-block w-2 h-2 rounded-full ${
+                                  collection.itemsMinted >= collection.itemsAvailable
+                                    ? 'bg-default-400'
+                                    : isLive
+                                    ? 'bg-success'
+                                    : 'bg-warning'
+                                }`}
+                              ></span>
+                              <span className="text-sm">
+                                {collection.itemsMinted >= collection.itemsAvailable
+                                  ? 'Finished'
+                                  : isLive
+                                  ? 'Live'
+                                  : 'Not Live'}
+                              </span>
+                            </div>
+                            <div className="mt-1">
+                              <span className="text-2xl font-bold">{collection.price} SOL</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-default-500">Minted</div>
+                            <div className="text-lg font-semibold">
+                              {collection.itemsMinted} / {collection.itemsAvailable}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="w-full bg-default-100 rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full"
+                            style={{
+                              width: `${(collection.itemsMinted / collection.itemsAvailable) * 100}%`,
+                            }}
+                          ></div>
+                        </div>
+
+                        {connected ? (
+                          <Button
+                            disabled={!isLive || isMinting || collection.itemsMinted >= collection.itemsAvailable}
+                            color={isLive && collection.itemsMinted < collection.itemsAvailable ? 'primary' : 'default'}
+                            size="lg"
+                            className="w-full"
+                            radius="lg"
+                            onPress={handleMint}
+                            isLoading={isMinting}
+                          >
+                            {isMinting
+                              ? 'Minting...'
+                              : collection.itemsMinted >= collection.itemsAvailable
+                              ? 'Sold Out'
+                              : isLive
+                              ? 'Mint'
+                              : timeLeft
+                              ? `Starts in ${timeLeft}`
+                              : 'Not Live'}
+                          </Button>
+                        ) : (
+                          <WalletMultiButton className="w-full py-4 px-8 rounded-xl bg-primary hover:bg-primary-500 text-white text-lg font-semibold" />
+                        )}
+
+                        <p className="text-center text-sm text-default-500">Limit ∞ Per Wallet</p>
+                      </div>
+                    </Card>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Creators</h3>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-default-100 rounded-full"></div>
+                          <div>
+                            <p className="font-semibold">
+                              {collection.creatorAddress.slice(0, 4)}...{collection.creatorAddress.slice(-4)}
+                            </p>
+                            <p className="text-sm text-default-500">Creator</p>
+                          </div>
+                        </div>
+                        <Button isIconOnly size="sm" variant="light">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                          </svg>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
