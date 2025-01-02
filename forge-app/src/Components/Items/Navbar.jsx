@@ -13,11 +13,15 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, Image as ImageIcon, User, Wand2, Plus, ShoppingBag, BookOpen } from 'lucide-react'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 export default function AppNavbar() {
   const { publicKey } = useWallet()
   const navigate = useNavigate()
+  const [isAIOpen, setIsAIOpen] = useState(false)
+  const [isMintOpen, setIsMintOpen] = useState(false)
+  const mintDropdownRef = useRef(null)
+
   const icons = {
     chevron: <ChevronDown size={20} />,
     wand: <Wand2 className="text-primary-500" size={24} />,
@@ -25,9 +29,6 @@ export default function AppNavbar() {
     plus: <Plus className="text-primary-500" size={24} />,
     shop: <ShoppingBag className="text-primary-500" size={24} />,
   }
-
-  const [isAIOpen, setIsAIOpen] = useState(false)
-  const [isMintOpen, setIsMintOpen] = useState(false)
 
   const handleProfile = () => {
     if (!publicKey) {
@@ -56,74 +57,22 @@ export default function AppNavbar() {
             Tokenomics
           </Link>
         </NavbarItem>
-        <Dropdown
-          isOpen={isAIOpen}
-          onOpenChange={setIsAIOpen}
-          showArrow
-          placement="bottom"
-          classNames={{
-            base: 'before:bg-forge-400/95',
-            content: 'bg-forge-400/95 py-1 px-1',
-          }}
+        <div
+          ref={mintDropdownRef}
+          onMouseEnter={() => setIsMintOpen(true)}
+          onMouseLeave={() => setIsMintOpen(false)}
+          className="relative py-4"
         >
-          <div onMouseEnter={() => setIsAIOpen(true)} onMouseLeave={() => setIsAIOpen(false)}>
-            <NavbarItem>
-              <DropdownTrigger>
-                <Button
-                  disableRipple
-                  className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
-                  endContent={icons.chevron}
-                  style={{ fontSize: 16 }}
-                  radius="sm"
-                  variant="light"
-                >
-                  AI Generation
-                </Button>
-              </DropdownTrigger>
-            </NavbarItem>
-          </div>
-          <DropdownMenu
-            aria-label="AI Generation Options"
-            className="w-[340px] backdrop-blur-md"
-            itemClasses={{
-              base: 'gap-4',
+          <Dropdown
+            isOpen={isMintOpen}
+            onOpenChange={setIsMintOpen}
+            showArrow
+            placement="bottom"
+            classNames={{
+              base: 'before:bg-forge-400/95',
+              content: 'bg-forge-400/95 py-1 px-1',
             }}
-            onMouseEnter={() => setIsAIOpen(true)}
-            onMouseLeave={() => setIsAIOpen(false)}
           >
-            <DropdownItem
-              key="from-scratch"
-              description="Create unique AI-generated NFTs from text"
-              startContent={icons.wand}
-              as={Link}
-              to="/ai/from-scratch"
-              className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
-            >
-              From Scratch
-            </DropdownItem>
-            <DropdownItem
-              key="reference-image"
-              description="Generate variations of existing images using AI"
-              startContent={icons.image}
-              as={Link}
-              to="/ai/reference"
-              className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
-            >
-              Reference Image
-            </DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
-        <Dropdown
-          isOpen={isMintOpen}
-          onOpenChange={setIsMintOpen}
-          showArrow
-          placement="bottom"
-          classNames={{
-            base: 'before:bg-forge-400/95',
-            content: 'bg-forge-400/95 py-1 px-1',
-          }}
-        >
-          <div onMouseEnter={() => setIsMintOpen(true)} onMouseLeave={() => setIsMintOpen(false)}>
             <NavbarItem>
               <DropdownTrigger>
                 <Button
@@ -138,46 +87,103 @@ export default function AppNavbar() {
                 </Button>
               </DropdownTrigger>
             </NavbarItem>
-          </div>
-          <DropdownMenu
-            aria-label="Mint Options"
-            className="w-[340px] bg-forge-400/95 backdrop-blur-md hover:border-none"
-            itemClasses={{
-              base: 'gap-4',
+            <div className="absolute -top-4 left-0 right-0 h-8" />
+            <DropdownMenu
+              aria-label="Mint Options"
+              className="w-[340px] backdrop-blur-md"
+              itemClasses={{
+                base: 'gap-4',
+              }}
+            >
+              <DropdownItem
+                key="create-guide"
+                description="Learn how to create your own NFT collection"
+                startContent={<BookOpen className="text-primary-500" size={24} />}
+                as={Link}
+                to="/create-guide"
+                className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+              >
+                Creation Guide
+              </DropdownItem>
+              <DropdownItem
+                key="deploy-collection"
+                description="Create and deploy your own NFT collection"
+                startContent={icons.plus}
+                as={Link}
+                to="/mint"
+                className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+              >
+                Deploy Collection
+              </DropdownItem>
+              <DropdownItem
+                key="mint-marketplace"
+                description="Mint NFTs from available collections"
+                startContent={icons.shop}
+                as={Link}
+                to="/marketplace"
+                className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+              >
+                Mint Marketplace
+              </DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </div>
+        <div onMouseEnter={() => setIsAIOpen(true)} onMouseLeave={() => setIsAIOpen(false)} className="relative py-4">
+          <Dropdown
+            isOpen={isAIOpen}
+            onOpenChange={setIsAIOpen}
+            showArrow
+            placement="bottom"
+            classNames={{
+              base: 'before:bg-forge-400/95',
+              content: 'bg-forge-400/95 py-1 px-1',
             }}
           >
-            <DropdownItem
-              key="create-guide"
-              description="Learn how to create your own NFT collection"
-              startContent={<BookOpen className="text-primary-500" size={24} />}
-              as={Link}
-              to="/create-guide"
-              className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+            <NavbarItem>
+              <DropdownTrigger>
+                <Button
+                  disableRipple
+                  className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
+                  endContent={icons.chevron}
+                  style={{ fontSize: 16 }}
+                  radius="sm"
+                  variant="light"
+                >
+                  AI Generation
+                </Button>
+              </DropdownTrigger>
+            </NavbarItem>
+            <div className="absolute -top-4 left-0 right-0 h-8" />
+            <DropdownMenu
+              aria-label="AI Generation Options"
+              className="w-[340px] backdrop-blur-md"
+              itemClasses={{
+                base: 'gap-4',
+              }}
             >
-              Creation Guide
-            </DropdownItem>
-            <DropdownItem
-              key="deploy-collection"
-              description="Create and deploy your own NFT collection"
-              startContent={icons.plus}
-              as={Link}
-              to="/mint"
-              className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
-            >
-              Deploy Collection
-            </DropdownItem>
-            <DropdownItem
-              key="mint-marketplace"
-              description="Mint NFTs from available collections"
-              startContent={icons.shop}
-              as={Link}
-              to="/marketplace"
-              className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
-            >
-              Mint Marketplace
-            </DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
+              <DropdownItem
+                key="from-scratch"
+                description="Create unique AI-generated NFTs from text"
+                startContent={icons.wand}
+                as={Link}
+                to="/ai/from-scratch"
+                className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+              >
+                From Scratch
+              </DropdownItem>
+              <DropdownItem
+                key="reference-image"
+                description="Generate variations of existing images using AI"
+                startContent={icons.image}
+                as={Link}
+                to="/ai/reference"
+                className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+              >
+                Reference Image
+              </DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </div>
         <NavbarItem>
           <Link to="/marketplace" className="text-white hover:text-primary-500 transition-colors">
             Marketplace
