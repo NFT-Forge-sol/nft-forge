@@ -129,6 +129,8 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+forge-ai/
+
 __pycache__/
 *.py[cod]
 *$py.class
