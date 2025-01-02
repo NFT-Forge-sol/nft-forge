@@ -11,8 +11,9 @@ import {
 } from '@nextui-org/react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, Image as ImageIcon, User, Wand2 } from 'lucide-react'
+import { ChevronDown, Image as ImageIcon, User, Wand2, Plus, ShoppingBag, BookOpen } from 'lucide-react'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { useState } from 'react'
 
 export default function AppNavbar() {
   const { publicKey } = useWallet()
@@ -21,7 +22,12 @@ export default function AppNavbar() {
     chevron: <ChevronDown size={20} />,
     wand: <Wand2 className="text-primary-500" size={24} />,
     image: <ImageIcon className="text-primary-500" size={24} />,
+    plus: <Plus className="text-primary-500" size={24} />,
+    shop: <ShoppingBag className="text-primary-500" size={24} />,
   }
+
+  const [isAIOpen, setIsAIOpen] = useState(false)
+  const [isMintOpen, setIsMintOpen] = useState(false)
 
   const handleProfile = () => {
     if (!publicKey) {
@@ -50,27 +56,40 @@ export default function AppNavbar() {
             Tokenomics
           </Link>
         </NavbarItem>
-        <Dropdown className="bg-forge-400/95 active:border-none active:outline-none">
-          <NavbarItem>
-            <DropdownTrigger>
-              <Button
-                disableRipple
-                className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
-                endContent={icons.chevron}
-                style={{ fontSize: 16, border: 'none', outline: 'none' }}
-                radius="sm"
-                variant="light"
-              >
-                AI Generation
-              </Button>
-            </DropdownTrigger>
-          </NavbarItem>
+        <Dropdown
+          isOpen={isAIOpen}
+          onOpenChange={setIsAIOpen}
+          showArrow
+          placement="bottom"
+          classNames={{
+            base: 'before:bg-forge-400/95',
+            content: 'bg-forge-400/95 py-1 px-1',
+          }}
+        >
+          <div onMouseEnter={() => setIsAIOpen(true)} onMouseLeave={() => setIsAIOpen(false)}>
+            <NavbarItem>
+              <DropdownTrigger>
+                <Button
+                  disableRipple
+                  className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
+                  endContent={icons.chevron}
+                  style={{ fontSize: 16 }}
+                  radius="sm"
+                  variant="light"
+                >
+                  AI Generation
+                </Button>
+              </DropdownTrigger>
+            </NavbarItem>
+          </div>
           <DropdownMenu
             aria-label="AI Generation Options"
-            className="w-[340px] bg-forge-400/95 backdrop-blur-md hover:border-none "
+            className="w-[340px] backdrop-blur-md"
             itemClasses={{
               base: 'gap-4',
             }}
+            onMouseEnter={() => setIsAIOpen(true)}
+            onMouseLeave={() => setIsAIOpen(false)}
           >
             <DropdownItem
               key="from-scratch"
@@ -94,11 +113,71 @@ export default function AppNavbar() {
             </DropdownItem>
           </DropdownMenu>
         </Dropdown>
-        <NavbarItem>
-          <Link to="/mint" className="text-white hover:text-primary-500 transition-colors">
-            Mint
-          </Link>
-        </NavbarItem>
+        <Dropdown
+          isOpen={isMintOpen}
+          onOpenChange={setIsMintOpen}
+          showArrow
+          placement="bottom"
+          classNames={{
+            base: 'before:bg-forge-400/95',
+            content: 'bg-forge-400/95 py-1 px-1',
+          }}
+        >
+          <div onMouseEnter={() => setIsMintOpen(true)} onMouseLeave={() => setIsMintOpen(false)}>
+            <NavbarItem>
+              <DropdownTrigger>
+                <Button
+                  disableRipple
+                  className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
+                  endContent={icons.chevron}
+                  style={{ fontSize: 16 }}
+                  radius="sm"
+                  variant="light"
+                >
+                  Mint
+                </Button>
+              </DropdownTrigger>
+            </NavbarItem>
+          </div>
+          <DropdownMenu
+            aria-label="Mint Options"
+            className="w-[340px] bg-forge-400/95 backdrop-blur-md hover:border-none"
+            itemClasses={{
+              base: 'gap-4',
+            }}
+          >
+            <DropdownItem
+              key="create-guide"
+              description="Learn how to create your own NFT collection"
+              startContent={<BookOpen className="text-primary-500" size={24} />}
+              as={Link}
+              to="/create-guide"
+              className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+            >
+              Creation Guide
+            </DropdownItem>
+            <DropdownItem
+              key="deploy-collection"
+              description="Create and deploy your own NFT collection"
+              startContent={icons.plus}
+              as={Link}
+              to="/mint"
+              className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+            >
+              Deploy Collection
+            </DropdownItem>
+            <DropdownItem
+              key="mint-marketplace"
+              description="Mint NFTs from available collections"
+              startContent={icons.shop}
+              as={Link}
+              to="/marketplace"
+              className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
+            >
+              Mint Marketplace
+            </DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
         <NavbarItem>
           <Link to="/marketplace" className="text-white hover:text-primary-500 transition-colors">
             Marketplace
