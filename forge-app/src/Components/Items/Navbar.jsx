@@ -61,7 +61,7 @@ export default function AppNavbar() {
           ref={mintDropdownRef}
           onMouseEnter={() => setIsMintOpen(true)}
           onMouseLeave={() => setIsMintOpen(false)}
-          className="relative py-4"
+          className="relative py-4 z-50"
         >
           <Dropdown
             isOpen={isMintOpen}
@@ -70,24 +70,22 @@ export default function AppNavbar() {
             placement="bottom"
             classNames={{
               base: 'before:bg-forge-400/95',
-              content: 'bg-forge-400/95 py-1 px-1',
+              content: 'bg-forge-400/95 py-1 px-1 min-w-[340px]',
+              trigger: 'z-50',
             }}
           >
-            <NavbarItem>
-              <DropdownTrigger>
-                <Button
-                  disableRipple
-                  className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
-                  endContent={icons.chevron}
-                  style={{ fontSize: 16 }}
-                  radius="sm"
-                  variant="light"
-                >
-                  Mint
-                </Button>
-              </DropdownTrigger>
-            </NavbarItem>
-            <div className="absolute -top-4 left-0 right-0 h-8" />
+            <DropdownTrigger>
+              <Button
+                disableRipple
+                className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
+                endContent={icons.chevron}
+                style={{ fontSize: 16 }}
+                radius="sm"
+                variant="light"
+              >
+                Mint
+              </Button>
+            </DropdownTrigger>
             <DropdownMenu
               aria-label="Mint Options"
               className="w-[340px] backdrop-blur-md"
@@ -128,7 +126,11 @@ export default function AppNavbar() {
             </DropdownMenu>
           </Dropdown>
         </div>
-        <div onMouseEnter={() => setIsAIOpen(true)} onMouseLeave={() => setIsAIOpen(false)} className="relative py-4">
+        <div
+          onMouseEnter={() => setIsAIOpen(true)}
+          onMouseLeave={() => setIsAIOpen(false)}
+          className="relative py-4 z-50"
+        >
           <Dropdown
             isOpen={isAIOpen}
             onOpenChange={setIsAIOpen}
@@ -136,24 +138,22 @@ export default function AppNavbar() {
             placement="bottom"
             classNames={{
               base: 'before:bg-forge-400/95',
-              content: 'bg-forge-400/95 py-1 px-1',
+              content: 'bg-forge-400/95 py-1 px-1 min-w-[340px]',
+              trigger: 'z-50',
             }}
           >
-            <NavbarItem>
-              <DropdownTrigger>
-                <Button
-                  disableRipple
-                  className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
-                  endContent={icons.chevron}
-                  style={{ fontSize: 16 }}
-                  radius="sm"
-                  variant="light"
-                >
-                  AI Generation
-                </Button>
-              </DropdownTrigger>
-            </NavbarItem>
-            <div className="absolute -top-4 left-0 right-0 h-8" />
+            <DropdownTrigger>
+              <Button
+                disableRipple
+                className="p-0 bg-transparent data-[hover=true]:bg-transparent text-white hover:text-primary-500 font-[500]"
+                endContent={icons.chevron}
+                style={{ fontSize: 16 }}
+                radius="sm"
+                variant="light"
+              >
+                AI Generation
+              </Button>
+            </DropdownTrigger>
             <DropdownMenu
               aria-label="AI Generation Options"
               className="w-[340px] backdrop-blur-md"
