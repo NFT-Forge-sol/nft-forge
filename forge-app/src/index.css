@@ -17,6 +17,23 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+@keyframes border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-border-flow {
+  animation: border-flow 3s ease infinite;
+  background-size: 400% 400%;
+}
+
 .wallet-adapter-button-trigger {
   background: #ff6b00 !important;
 }
