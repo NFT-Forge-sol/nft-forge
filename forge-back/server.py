@@ -1,6 +1,6 @@
-from flask import Flask, request, send_file, jsonify  
-from openai import OpenAI
+from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
+from openai import OpenAI
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from bson import ObjectId
@@ -9,6 +9,8 @@ import base64
 import os
 import io
 from datetime import datetime
+import json
+import time
 
 load_dotenv()
 
@@ -30,10 +32,25 @@ openai_client = OpenAI(
     base_url=BASE_URL,
 )
 
+# Simple rate limiter class
+class RateLimiter:
+    def __init__(self, calls_per_second=1):
+        self.calls_per_second = calls_per_second
+        self.last_call = 0
+
+    def acquire(self):
+        now = time.time()
+        time_passed = now - self.last_call
+        if time_passed < 1/self.calls_per_second:
+            time.sleep(1/self.calls_per_second - time_passed)
+        self.last_call = time.time()
+
+rate_limiter = RateLimiter(calls_per_second=1)
+
 @app.route('/api/candy-machines', methods=['POST'])
 def create_candy_machine():
     try:
-        data = request.json
+        data = request.get_json()
         data['createdAt'] = datetime.now()
         data['updatedAt'] = datetime.now()
         data['itemsMinted'] = 0
@@ -210,40 +227,125 @@ def list_models():
 @app.route('/api/generate-nft/metadata', methods=['POST'])
 def generate_nft_metadata():
     try:
-        data = request.json
+        data = request.get_json()
         prompt = data.get('prompt')
-        number = data.get('number', 1) 
-
+        total_number = data.get('number', 10)
+        
         if not prompt:
             return jsonify({'error': 'Prompt is required'}), 400
 
-        system_prompt = """You are an NFT metadata generator. Generate unique metadata for each NFT in a collection.
-        Each NFT should have:
+        # Get the first batch to establish trait types
+        first_batch_response = generate_batch(prompt, 1, None)
+        if not first_batch_response or not isinstance(first_batch_response, list):
+            raise ValueError("Failed to generate initial batch")
+
+        first_nft = first_batch_response[0]
+        trait_types = []
+        
+        if "attributes" in first_nft:
+            trait_types = [trait["trait_type"] for trait in first_nft["attributes"]]
+        elif "trait_types" in first_nft:
+            trait_types = first_nft["trait_types"]
+        elif "metadata" in first_nft and "attributes" in first_nft["metadata"]:
+            trait_types = [trait["trait_type"] for trait in first_nft["metadata"]["attributes"]]
+        
+        if not trait_types:
+            raise ValueError("Could not find trait types in response")
+
+        system_prompt = f"""You are an NFT metadata generator. Generate unique metadata for each NFT in a collection.
+        CRITICAL REQUIREMENTS:
+        1. You MUST use EXACTLY these trait types for ALL NFTs: {', '.join(trait_types)}
+        2. The generation prompt MUST explicitly mention ALL trait values
+        3. Use a consistent perspective and style across all prompts
+        
+        Each NFT must have:
         1. A unique description
-        2. The original prompt used
-        3. Metadata with trait_types that are consistent across the collection but with varying values
-        Return the data as a JSON array."""
-
-        user_prompt = f"""Create a collection of {number} NFTs based on this theme: {prompt}
-        For each NFT, provide:
-        - A unique description
-        - The generation prompt
-        - Metadata with trait types and values
+        2. A detailed generation prompt that incorporates ALL trait values
+        3. Metadata with EXACTLY the trait types listed above
         
-        Format each NFT exactly like this:
-        {{
-            "description": "Unique description for this NFT",
-            "prompt": "Detailed prompt that would generate this specific NFT",
-            "metadata": {{
+        Example of good alignment between traits and prompt:
+        {
+            "description": "A noble knight with golden armor",
+            "prompt": "Generate an image of a knight wearing golden armor (Armor: Gold), wielding a longsword (Weapon: Longsword), with a red plume on the helmet (Helmet: Red Plume), standing in a castle courtyard (Background: Castle)",
+            "metadata": {
                 "trait_types": [
-                    {{"trait_type": "Type1", "value": "Value1"}},
-                    {{"trait_type": "Type2", "value": "Value2"}}
+                    {"trait_type": "Armor", "value": "Gold"},
+                    {"trait_type": "Weapon", "value": "Longsword"},
+                    {"trait_type": "Helmet", "value": "Red Plume"},
+                    {"trait_type": "Background", "value": "Castle"}
                 ]
-            }}
-        }}
-        
-        Ensure all NFTs have the same trait_types but different values where appropriate."""
+            }
+        }"""
 
+        remaining = total_number - 1
+        all_nfts = first_batch_response
+
+        while remaining > 0:
+            batch_size = min(10, remaining)
+            batch_result = generate_batch(prompt, batch_size, system_prompt)
+            if batch_result and isinstance(batch_result, list):
+                all_nfts.extend(batch_result)
+            remaining -= batch_size
+
+        return jsonify(all_nfts), 200
+
+    except Exception as e:
+        app.logger.error(f"Error generating NFT metadata: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+def generate_batch(prompt, batch_size, system_prompt=None):
+    if system_prompt is None:
+        system_prompt = """You are an NFT metadata generator creating high-end digital art in a specific style.
+        The artwork should follow these stylistic guidelines:
+        - Modern digital art style similar to popular NFT collections
+        - Bold, vibrant colors with psychedelic or rainbow gradients where appropriate
+        - Clean, cartoon-like linework with a professional finish
+        - Potential for accessories like crowns, sunglasses, or other status symbols
+        - Flat color backgrounds or simple gradient backgrounds
+        
+        CRITICAL REQUIREMENTS:
+        1. First, determine 4-6 relevant trait types based on the collection theme
+        2. Use these SAME trait types consistently across ALL NFTs
+        3. CRUCIAL: Each generation prompt must include:
+           - Specific art style reference (e.g., "digital cartoon art style with clean linework")
+           - Color palette description (e.g., "vibrant psychedelic colors", "rainbow gradient pattern")
+           - Detailed description of each trait and its visual implementation
+           - Background style specification
+        4. Use a consistent perspective and style across all prompts
+        
+        Example prompt structure:
+        "Create a digital cartoon artwork in the style of modern NFT collections, featuring [subject] with [specific trait details]. 
+        Use vibrant colors with [color palette description]. The character should have [detailed trait descriptions]. 
+        Set against a [background description]. Maintain clean linework and bold colors throughout."
+        
+        Remember: Each prompt should be detailed enough to consistently reproduce the intended artistic style."""
+
+    user_prompt = f"""Create a collection of {batch_size} NFTs based on this theme: {prompt}
+    
+    REQUIREMENTS:
+    1. Use the EXACT trait types specified
+    2. CRUCIAL: The generation prompt must explicitly mention EVERY trait value
+    3. Use consistent perspective and style in all prompts
+    4. Follow the rarity distribution guidelines strictly
+    5. DO NOT include any rarity indicators in the metadata
+    6. Ensure Legendary and Mythic traits feel truly special and unique
+     
+    Format each NFT exactly like this:
+    {{
+        "description": "Unique description",
+        "prompt": "Detailed prompt that MUST include ALL trait values explicitly",
+        "metadata": {{
+            "trait_types": [
+                {{"trait_type": "Type1", "value": "Value1"}},
+                {{"trait_type": "Type2", "value": "Value2"}},
+                ... (same traits for all NFTs)
+            ]
+        }}
+    }}"""
+
+    try:
+        rate_limiter.acquire()
+        
         response = openai_client.chat.completions.create(
             model="grok-2-1212",
             messages=[
@@ -253,18 +355,29 @@ def generate_nft_metadata():
             response_format={ "type": "json_object" }
         )
 
-        generated_data = response.choices[0].message.content
+        batch_data = response.choices[0].message.content
         
-        return jsonify(generated_data), 200
+        if isinstance(batch_data, str):
+            batch_data = json.loads(batch_data)
+        
+        if isinstance(batch_data, dict):
+            batch_nfts = batch_data.get('nfts', batch_data)
+        else:
+            batch_nfts = batch_data
+
+        if not isinstance(batch_nfts, list):
+            raise ValueError("Invalid response format from Grok")
+
+        return batch_nfts
 
     except Exception as e:
-        app.logger.error(f"Error generating NFT metadata: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"Error in generate_batch: {str(e)}")
+        return None
 
 @app.route('/api/candy-machines/<candy_machine_id>/collection', methods=['POST'])
 def set_collection_nft(candy_machine_id):
     try:
-        data = request.json
+        data = request.get_json()
         collection_uri = data.get('collectionUri')
         
         if not collection_uri:
@@ -294,7 +407,7 @@ def set_collection_nft(candy_machine_id):
 @app.route('/api/candy-machines/<candy_machine_id>/nfts', methods=['POST'])
 def set_nfts_uri(candy_machine_id):
     try:
-        data = request.json
+        data = request.get_json()
         nft_uris = data.get('nftUris', [])
         
         if not nft_uris:
@@ -322,4 +435,4 @@ def set_nfts_uri(candy_machine_id):
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)

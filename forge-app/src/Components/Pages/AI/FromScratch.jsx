@@ -20,7 +20,9 @@ const FromScratch = () => {
       setLoading(true)
       setError(null)
       const response = await DatabaseProvider.generateNFTMetadata(prompt, number)
-      setGeneratedNFTs(response)
+      console.log(response)
+      const nftData = typeof response === 'string' ? JSON.parse(response) : response
+      setGeneratedNFTs(nftData)
     } catch (err) {
       setError('Failed to generate NFTs. Please try again.')
       console.error('Error generating NFTs:', err)
@@ -85,24 +87,26 @@ const FromScratch = () => {
             <Tabs selectedKey={selectedView} onSelectionChange={setSelectedView} className="mb-4">
               <Tab key="preview" title="Preview">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                  {generatedNFTs.map((nft, index) => (
-                    <Card key={index} className="bg-forge-400/50 backdrop-blur-md">
-                      <CardBody>
-                        <h3 className="text-lg font-semibold mb-2">{`NFT #${index + 1}`}</h3>
-                        <p className="text-sm mb-2">{nft.description}</p>
-                        <div className="text-sm">
-                          <h4 className="font-semibold mb-1">Traits:</h4>
-                          <div className="grid grid-cols-2 gap-2">
-                            {nft.metadata.trait_types.map((trait, traitIndex) => (
-                              <div key={traitIndex} className="bg-forge-300/50 p-2 rounded">
-                                <span className="font-medium">{trait.trait_type}:</span> <span>{trait.value}</span>
-                              </div>
-                            ))}
+                  {Array.isArray(generatedNFTs) &&
+                    generatedNFTs.map((nft, index) => (
+                      <Card key={index} className="bg-forge-400/50 backdrop-blur-md">
+                        <CardBody>
+                          <h3 className="text-lg font-semibold mb-2">{`NFT #${index + 1}`}</h3>
+                          <p className="text-sm mb-2">{nft.description}</p>
+                          <p className="text-xs mb-2 text-gray-400">{nft.prompt}</p>
+                          <div className="text-sm">
+                            <h4 className="font-semibold mb-1">Traits:</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              {nft.metadata.trait_types.map((trait, traitIndex) => (
+                                <div key={traitIndex} className="bg-forge-300/50 p-2 rounded">
+                                  <span className="font-medium">{trait.trait_type}:</span> <span>{trait.value}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      </CardBody>
-                    </Card>
-                  ))}
+                        </CardBody>
+                      </Card>
+                    ))}
                 </div>
               </Tab>
               <Tab key="json" title="JSON">
