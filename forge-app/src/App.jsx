@@ -12,6 +12,7 @@ import ScrollToTop from './Components/Utils/ScrollToTop'
 import Tokenomics from './Components/Pages/Tokenomics'
 import Marketplace from './Components/Pages/Marketplace'
 import CreateCollectionGuide from './Components/Pages/CreateCollectionGuide'
+import FromScratch from './Components/Pages/AI/FromScratch'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/tokenomics" element={<Tokenomics />} />
               <Route path="/create-guide" element={<CreateCollectionGuide />} />
+              <Route path="/ai/from-scratch" element={<FromScratch />} />
             </Routes>
           </div>
           <Footer />

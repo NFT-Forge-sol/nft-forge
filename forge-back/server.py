@@ -30,7 +30,6 @@ openai_client = OpenAI(
     base_url=BASE_URL,
 )
 
-# Candy Machine Routes
 @app.route('/api/candy-machines', methods=['POST'])
 def create_candy_machine():
     try:
@@ -208,6 +207,60 @@ def list_models():
         app.logger.error(f"Error while getting models : {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/generate-nft/metadata', methods=['POST'])
+def generate_nft_metadata():
+    try:
+        data = request.json
+        prompt = data.get('prompt')
+        number = data.get('number', 1) 
+
+        if not prompt:
+            return jsonify({'error': 'Prompt is required'}), 400
+
+        system_prompt = """You are an NFT metadata generator. Generate unique metadata for each NFT in a collection.
+        Each NFT should have:
+        1. A unique description
+        2. The original prompt used
+        3. Metadata with trait_types that are consistent across the collection but with varying values
+        Return the data as a JSON array."""
+
+        user_prompt = f"""Create a collection of {number} NFTs based on this theme: {prompt}
+        For each NFT, provide:
+        - A unique description
+        - The generation prompt
+        - Metadata with trait types and values
+        
+        Format each NFT exactly like this:
+        {{
+            "description": "Unique description for this NFT",
+            "prompt": "Detailed prompt that would generate this specific NFT",
+            "metadata": {{
+                "trait_types": [
+                    {{"trait_type": "Type1", "value": "Value1"}},
+                    {{"trait_type": "Type2", "value": "Value2"}}
+                ]
+            }}
+        }}
+        
+        Ensure all NFTs have the same trait_types but different values where appropriate."""
+
+        response = openai_client.chat.completions.create(
+            model="grok-2-1212",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={ "type": "json_object" }
+        )
+
+        generated_data = response.choices[0].message.content
+        
+        return jsonify(generated_data), 200
+
+    except Exception as e:
+        app.logger.error(f"Error generating NFT metadata: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/candy-machines/<candy_machine_id>/collection', methods=['POST'])
 def set_collection_nft(candy_machine_id):
     try:
@@ -217,7 +270,6 @@ def set_collection_nft(candy_machine_id):
         if not collection_uri:
             return jsonify({'error': 'Collection URI is required'}), 400
 
-        # Update the candy machine document with collection URI
         result = candy_machines.find_one_and_update(
             {'candyMachineId': candy_machine_id},
             {
@@ -248,7 +300,6 @@ def set_nfts_uri(candy_machine_id):
         if not nft_uris:
             return jsonify({'error': 'NFT URIs array is required'}), 400
 
-        # Update the candy machine document with NFT URIs
         result = candy_machines.find_one_and_update(
             {'candyMachineId': candy_machine_id},
             {

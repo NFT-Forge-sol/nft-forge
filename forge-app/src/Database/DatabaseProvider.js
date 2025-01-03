@@ -144,6 +144,19 @@ class DatabaseProvider {
       throw error
     }
   }
+
+  async generateNFTMetadata(prompt, number = 10) {
+    try {
+      const response = await axios.post(`${API_URL}/api/generate-nft/metadata`, {
+        prompt,
+        number,
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error generating NFT metadata:', error)
+      throw error
+    }
+  }
 }
 
 export default new DatabaseProvider()

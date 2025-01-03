@@ -118,7 +118,7 @@ export default function AppNavbar() {
                 description="Mint NFTs from available collections"
                 startContent={icons.shop}
                 as={Link}
-                to="/marketplace"
+                to="/mint-marketplace"
                 className="text-white data-[hover=true]:text-primary-500 data-[hover=true]:bg-forge-300/50"
               >
                 Mint Marketplace
