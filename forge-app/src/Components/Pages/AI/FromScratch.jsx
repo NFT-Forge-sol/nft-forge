@@ -97,11 +97,12 @@ const FromScratch = () => {
                           <div className="text-sm">
                             <h4 className="font-semibold mb-1">Traits:</h4>
                             <div className="grid grid-cols-2 gap-2">
-                              {nft.metadata.trait_types.map((trait, traitIndex) => (
-                                <div key={traitIndex} className="bg-forge-300/50 p-2 rounded">
-                                  <span className="font-medium">{trait.trait_type}:</span> <span>{trait.value}</span>
-                                </div>
-                              ))}
+                              {nft.attributes &&
+                                nft.attributes.map((trait, traitIndex) => (
+                                  <div key={traitIndex} className="bg-forge-300/50 p-2 rounded">
+                                    <span className="font-medium">{trait.trait_type}:</span> <span>{trait.value}</span>
+                                  </div>
+                                ))}
                             </div>
                           </div>
                         </CardBody>

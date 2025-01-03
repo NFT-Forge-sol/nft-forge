@@ -224,6 +224,32 @@ def list_models():
         app.logger.error(f"Error while getting models : {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+def generate_position_template():
+    """Generate a standardized camera and position configuration template."""
+    config_prompt = """Create the camera and position configuration for an NFT collection.
+    Return ONLY a JSON object with the configuration details like this:
+    {
+        "camera_config": "front-facing portrait view, framed from shoulders up, head taking 60% of frame height, square 1:1 aspect ratio",
+        "position_config": "centered subject, straight standing pose, shoulders visible, clean background behind subject"
+    }"""
+
+    try:
+        config_response = openai_client.chat.completions.create(
+            model="grok-2-1212",
+            messages=[
+                {"role": "system", "content": "You are a camera and position configuration specialist."},
+                {"role": "user", "content": config_prompt}
+            ],
+            response_format={ "type": "json_object" }
+        )
+
+        config = json.loads(config_response.choices[0].message.content)
+        return f"{config['camera_config']}. {config['position_config']}"
+    except Exception as e:
+        app.logger.error(f"Error generating position template: {str(e)}")
+        # Fallback to default template if generation fails
+        return "front-facing portrait view, framed from shoulders up, head taking 60% of frame height, square 1:1 aspect ratio. centered subject, straight standing pose, shoulders visible, clean background behind subject"
+
 @app.route('/api/generate-nft/metadata', methods=['POST'])
 def generate_nft_metadata():
     try:
@@ -234,55 +260,28 @@ def generate_nft_metadata():
         if not prompt:
             return jsonify({'error': 'Prompt is required'}), 400
 
-        # Get the first batch to establish trait types
-        first_batch_response = generate_batch(prompt, 1, None)
+        # Generate position template first
+        position_template = generate_position_template()
+        
+        # Get the first batch with position template (no trait types yet)
+        first_batch_response = generate_batch(prompt, 1, position_template)
         if not first_batch_response or not isinstance(first_batch_response, list):
             raise ValueError("Failed to generate initial batch")
 
+        # Extract trait types from first NFT to use for all subsequent batches
         first_nft = first_batch_response[0]
-        trait_types = []
-        
-        if "attributes" in first_nft:
-            trait_types = [trait["trait_type"] for trait in first_nft["attributes"]]
-        elif "trait_types" in first_nft:
-            trait_types = first_nft["trait_types"]
-        elif "metadata" in first_nft and "attributes" in first_nft["metadata"]:
-            trait_types = [trait["trait_type"] for trait in first_nft["metadata"]["attributes"]]
-        
-        if not trait_types:
-            raise ValueError("Could not find trait types in response")
+        if 'attributes' not in first_nft:
+            raise ValueError("First NFT missing attributes")
+            
+        trait_types = first_nft['attributes']
 
-        system_prompt = f"""You are an NFT metadata generator. Generate unique metadata for each NFT in a collection.
-        CRITICAL REQUIREMENTS:
-        1. You MUST use EXACTLY these trait types for ALL NFTs: {', '.join(trait_types)}
-        2. The generation prompt MUST explicitly mention ALL trait values
-        3. Use a consistent perspective and style across all prompts
-        
-        Each NFT must have:
-        1. A unique description
-        2. A detailed generation prompt that incorporates ALL trait values
-        3. Metadata with EXACTLY the trait types listed above
-        
-        Example of good alignment between traits and prompt:
-        {
-            "description": "A noble knight with golden armor",
-            "prompt": "Generate an image of a knight wearing golden armor (Armor: Gold), wielding a longsword (Weapon: Longsword), with a red plume on the helmet (Helmet: Red Plume), standing in a castle courtyard (Background: Castle)",
-            "metadata": {
-                "trait_types": [
-                    {"trait_type": "Armor", "value": "Gold"},
-                    {"trait_type": "Weapon", "value": "Longsword"},
-                    {"trait_type": "Helmet", "value": "Red Plume"},
-                    {"trait_type": "Background", "value": "Castle"}
-                ]
-            }
-        }"""
-
+        # Generate remaining NFTs with the same trait types
         remaining = total_number - 1
         all_nfts = first_batch_response
 
         while remaining > 0:
             batch_size = min(10, remaining)
-            batch_result = generate_batch(prompt, batch_size, system_prompt)
+            batch_result = generate_batch(prompt, batch_size, position_template, trait_types)
             if batch_result and isinstance(batch_result, list):
                 all_nfts.extend(batch_result)
             remaining -= batch_size
@@ -293,55 +292,68 @@ def generate_nft_metadata():
         app.logger.error(f"Error generating NFT metadata: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-def generate_batch(prompt, batch_size, system_prompt=None):
-    if system_prompt is None:
-        system_prompt = """You are an NFT metadata generator creating high-end digital art in a specific style.
-        The artwork should follow these stylistic guidelines:
-        - Modern digital art style similar to popular NFT collections
-        - Bold, vibrant colors with psychedelic or rainbow gradients where appropriate
-        - Clean, cartoon-like linework with a professional finish
-        - Potential for accessories like crowns, sunglasses, or other status symbols
-        - Flat color backgrounds or simple gradient backgrounds
+def generate_batch(prompt, batch_size, position_template, trait_types=None):
+    """
+    Generate a batch of NFTs with consistent trait types.
+    If trait_types is provided, use those exact types. If not, generate new ones for the first batch.
+    """
+    style_template = "Create in a modern cartoon style with bold lines, vibrant colors, and a playful aesthetic similar to popular NFT collections. The art should be clean, distinctive, and have a digital art feel with crisp edges and solid colors."
+    
+    if trait_types:
+        system_prompt = f"""You are an NFT metadata generator. Generate unique metadata for each NFT in a collection.
+        
+        POSITIONING TEMPLATE (USE THIS EXACT TEXT AT THE START OF EVERY PROMPT):
+        "{position_template}"
+        
+        STYLE REQUIREMENTS:
+        {style_template}
         
         CRITICAL REQUIREMENTS:
-        1. First, determine 4-6 relevant trait types based on the collection theme
-        2. Use these SAME trait types consistently across ALL NFTs
-        3. CRUCIAL: Each generation prompt must include:
-           - Specific art style reference (e.g., "digital cartoon art style with clean linework")
-           - Color palette description (e.g., "vibrant psychedelic colors", "rainbow gradient pattern")
-           - Detailed description of each trait and its visual implementation
-           - Background style specification
-        4. Use a consistent perspective and style across all prompts
+        1. You MUST use EXACTLY these trait types in this order for ALL NFTs:
+        {json.dumps([{"trait_type": t["trait_type"]} for t in trait_types], indent=2)}
         
-        Example prompt structure:
-        "Create a digital cartoon artwork in the style of modern NFT collections, featuring [subject] with [specific trait details]. 
-        Use vibrant colors with [color palette description]. The character should have [detailed trait descriptions]. 
-        Set against a [background description]. Maintain clean linework and bold colors throughout."
+        2. Every generation prompt MUST start with the positioning template, followed by the style description
+        3. The generation prompt MUST explicitly mention ALL trait values
+        4. Use consistent style across all prompts
         
-        Remember: Each prompt should be detailed enough to consistently reproduce the intended artistic style."""
+        RETURN FORMAT (USE EXACTLY THIS STRUCTURE):
+        {{
+            "description": "Unique description",
+            "prompt": "{position_template}. {style_template}. [Detailed prompt including all traits]",
+            "attributes": {json.dumps(trait_types)}
+        }}
 
-    user_prompt = f"""Create a collection of {batch_size} NFTs based on this theme: {prompt}
-    
-    REQUIREMENTS:
-    1. Use the EXACT trait types specified
-    2. CRUCIAL: The generation prompt must explicitly mention EVERY trait value
-    3. Use consistent perspective and style in all prompts
-    4. Follow the rarity distribution guidelines strictly
-    5. DO NOT include any rarity indicators in the metadata
-    6. Ensure Legendary and Mythic traits feel truly special and unique
-     
-    Format each NFT exactly like this:
-    {{
-        "description": "Unique description",
-        "prompt": "Detailed prompt that MUST include ALL trait values explicitly",
-        "metadata": {{
-            "trait_types": [
+        DO NOT INCLUDE: name, image_prompt, or any other fields."""
+    else:
+        system_prompt = f"""You are an NFT metadata generator. Generate unique metadata for each NFT in a collection.
+        
+        POSITIONING TEMPLATE (USE THIS EXACT TEXT AT THE START OF EVERY PROMPT):
+        "{position_template}"
+        
+        STYLE REQUIREMENTS:
+        {style_template}
+        
+        CRITICAL REQUIREMENTS:
+        1. Generate between 3-6 relevant trait types for the collection theme
+        2. Every generation prompt MUST start with the positioning template, followed by the style description
+        3. The generation prompt MUST explicitly mention ALL trait values
+        4. Use consistent style across all prompts
+
+        RETURN FORMAT (USE EXACTLY THIS STRUCTURE):
+        {{
+            "description": "Unique description",
+            "prompt": "{position_template}. {style_template}. [Detailed prompt including all traits]",
+            "attributes": [
                 {{"trait_type": "Type1", "value": "Value1"}},
-                {{"trait_type": "Type2", "value": "Value2"}},
-                ... (same traits for all NFTs)
+                // ... more traits as needed
             ]
         }}
-    }}"""
+
+        DO NOT INCLUDE: name, image_prompt, or any other fields."""
+
+    user_prompt = f"""Create {batch_size} NFT{'s' if batch_size > 1 else ''} based on this theme: {prompt}
+    
+    IMPORTANT: Return ONLY description, prompt, and attributes fields. DO NOT include name, image, or any other fields."""
 
     try:
         rate_limiter.acquire()
@@ -360,18 +372,49 @@ def generate_batch(prompt, batch_size, system_prompt=None):
         if isinstance(batch_data, str):
             batch_data = json.loads(batch_data)
         
+        # Extract NFTs array
         if isinstance(batch_data, dict):
-            batch_nfts = batch_data.get('nfts', batch_data)
+            batch_nfts = batch_data.get('nfts', [batch_data])
         else:
             batch_nfts = batch_data
 
         if not isinstance(batch_nfts, list):
             raise ValueError("Invalid response format from Grok")
 
+        # Clean up any extra fields and validate trait types
+        for nft in batch_nfts:
+            # Remove unwanted fields
+            allowed_fields = {'description', 'prompt', 'attributes'}
+            for key in list(nft.keys()):
+                if key not in allowed_fields:
+                    del nft[key]
+                    
+            # Convert image_prompt to prompt if it exists
+            if 'image_prompt' in nft:
+                nft['prompt'] = nft.pop('image_prompt')
+
+            # Validate trait types if they were provided
+            if trait_types and 'attributes' in nft:
+                if len(nft['attributes']) != len(trait_types):
+                    raise ValueError(f"Incorrect number of traits. Expected {len(trait_types)}, got {len(nft['attributes'])}")
+                for i, (expected, actual) in enumerate(zip(trait_types, nft['attributes'])):
+                    if expected['trait_type'] != actual['trait_type']:
+                        nft['attributes'][i]['trait_type'] = expected['trait_type']
+
+            # Ensure position template and style template are added to prompt
+            if 'prompt' in nft:
+                if not nft['prompt'].startswith(position_template):
+                    nft['prompt'] = f"{position_template}. {style_template}. {nft['prompt']}"
+                elif not style_template in nft['prompt']:
+                    # If position template exists but style template doesn't, insert style template after position template
+                    position_end = len(position_template)
+                    nft['prompt'] = f"{nft['prompt'][:position_end]}. {style_template}{nft['prompt'][position_end:]}"
+
         return batch_nfts
 
     except Exception as e:
         app.logger.error(f"Error in generate_batch: {str(e)}")
+        app.logger.error(f"Response content: {response.choices[0].message.content if 'response' in locals() else 'No response'}")
         return None
 
 @app.route('/api/candy-machines/<candy_machine_id>/collection', methods=['POST'])
